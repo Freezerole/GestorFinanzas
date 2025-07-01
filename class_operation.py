@@ -5,9 +5,9 @@
 import datetime
 
 class Operation:
-    def __init__(self, EffectiveDate: datetime.date, Concept: str, Value: float, IsIncome : bool, To=None, CreatedBy=None, CreationDate=None):
+    def __init__(self, ID: int ,EffectiveDate: datetime.date, Concept: str, Value: float, IsIncome : bool, To=None, CreatedBy=None, CreationDate=None):
 
-
+        self.ID = ID
         self.EffectiveDate = EffectiveDate
         self.To = To
         self.Concept = Concept
@@ -26,7 +26,18 @@ class Operation:
 
 
 
-    # Propiedades:
+    @property
+    def ID(self):
+        return self._ID
+    
+    @ID.setter
+    def ID(self, value):
+        if isinstance(value, int) and value > 0:
+            self._ID = value
+        else:
+            raise ValueError
+
+
     @property
     def EffectiveDate(self):
         return self._EffectiveDate
@@ -69,7 +80,7 @@ class Operation:
     @IsIncome.setter
     def IsIncome(self, value):
         if isinstance(value, bool):
-            self.IsIncome = value
+            self._IsIncome = value
         else:
             raise TypeError("Este campo solo acepta booleanos")
 
@@ -100,6 +111,7 @@ class Operation:
 
     def __str__(self):
         parts = [
+            f"Operation ID: {self.ID}"
             f"CreatedBy: {self.CreatedBy}",
             f"Concept: {self.Concept}",
             f"Value: {self.Value}€",
@@ -115,5 +127,4 @@ class Operation:
             parts.append(f"CreatedBy: {self.CreatedBy}")
 
         return ", ".join(parts)
-
 
