@@ -1,54 +1,41 @@
-# Gestor de Finanzas:
-# Permite ver a futuro el balance real y "previsto" de una cuenta y acceder a un log con las operaciones futuras
-# Permite también apartar importes a futuros basándose en gastos o ingresos previstos
-
 import datetime
+from typing import Optional
 
 class Operation:
-    def __init__(self, ID: int ,EffectiveDate: datetime.date, Concept: str, Value: float, IsIncome : bool, To=None, CreatedBy=None, CreationDate=None):
+    def __init__(self, ID: int, Concept: str, Value: float, IsIncome: bool, To = None, CreatedBy = None, CreationDate = None, EffectiveDate = None):
 
         self.ID = ID
-        self.EffectiveDate = EffectiveDate
-        self.To = To
         self.Concept = Concept
         self.Value = Value
-        self.CreatedBy = CreatedBy
         self.IsIncome = IsIncome
+        self.To = To
+        self.CreatedBy = CreatedBy
 
+        self._CreationDate = CreationDate or datetime.date.today()
 
-        if CreationDate is None:
-            self.CreationDate = datetime.date.today()
+        if EffectiveDate is not None:
+            if not isinstance(EffectiveDate, datetime.date):
+                raise TypeError("EffectiveDate debe ser una instancia de datetime.date")
+            if EffectiveDate < self._CreationDate:
+                raise ValueError("EffectiveDate no puede ser anterior a CreationDate")
+            self._EffectiveDate = EffectiveDate
         else:
-            if CreationDate < EffectiveDate:
-                self.CreationDate = CreationDate
-            else:
-                raise ValueError("La fecha de creacion no puede ser posterior a la fecha de oficialización de la transacción")
+            self._EffectiveDate = self._CreationDate
 
-
+# Si la fecha de Creacion esta vacia, se asume hoy
+# Si la fecha de Ejecucion eta vacia, se asume CreacionDate
+# Es posible poner fechas a pasado mientras cumpla la restriccion del EjecutionDate
 
     @property
     def ID(self):
         return self._ID
-    
+
     @ID.setter
     def ID(self, value):
         if isinstance(value, int) and value > 0:
             self._ID = value
         else:
-            raise ValueError
-
-
-    @property
-    def EffectiveDate(self):
-        return self._EffectiveDate
-
-    @EffectiveDate.setter
-    def EffectiveDate(self, value):
-        if isinstance(value, datetime.date) and datetime.date.today() <= value:
-            self._EffectiveDate = value
-        else:
-            raise ValueError("No puedes programar una operación para un día ya pasado")
-        
+            raise ValueError("ID debe ser un entero positivo")
 
     @property
     def Concept(self):
@@ -56,11 +43,10 @@ class Operation:
 
     @Concept.setter
     def Concept(self, value):
-        if isinstance(value, str) and len(value) > 0:
+        if isinstance(value, str) and value.strip():
             self._Concept = value
         else:
-            raise TypeError("El concepto tiene que ser una palabra o frase")
-        
+            raise TypeError("El concepto tiene que ser una palabra o frase no vacía")
 
     @property
     def Value(self):
@@ -69,14 +55,14 @@ class Operation:
     @Value.setter
     def Value(self, value):
         if isinstance(value, (float, int)) and value > 0:
-            self._Value = round(value, 2)
+            self._Value = round(float(value), 2)
         else:
             raise ValueError("La cantidad tiene que ser positiva")
-    
+
     @property
     def IsIncome(self):
         return self._IsIncome
-    
+
     @IsIncome.setter
     def IsIncome(self, value):
         if isinstance(value, bool):
@@ -90,41 +76,43 @@ class Operation:
 
     @To.setter
     def To(self, value):
-        if (isinstance(value, str) and len(value) > 0) or (value is None):
+        if value is None or (isinstance(value, str) and value.strip()):
             self._To = value
         else:
-            raise TypeError("El destinatario tiene que ser un nombre o None")
-        
+            raise TypeError("El destinatario tiene que ser un nombre válido o None")
 
-    @property       
+    @property
     def CreatedBy(self):
         return self._CreatedBy
 
     @CreatedBy.setter
     def CreatedBy(self, value):
-        if (isinstance(value, str) and len(value) > 0) or (value is None):
+        if value is None or (isinstance(value, str) and value.strip()):
             self._CreatedBy = value
         else:
-            raise TypeError("El CreatedBy tiene que ser un nombre (str) o None")
+            raise TypeError("CreatedBy debe ser un string válido o None")
 
+    @property
+    def CreationDate(self):
+        return self._CreationDate
 
+    @property
+    def EffectiveDate(self):
+        return self._EffectiveDate
+
+    @property
+    def signed_value(self):
+        return self.Value if self.IsIncome else -self.Value
 
     def __str__(self):
         parts = [
-            f"Operation ID: {self.ID}"
+            f"Operation ID: {self.ID}",
             f"CreatedBy: {self.CreatedBy}",
             f"Concept: {self.Concept}",
             f"Value: {self.Value}€",
             f"CreationDate: {self.CreationDate}",
-            f"EffectiveDate: {self.EffectiveDate.strftime('%d - %m - %Y')}"
-            
+            f"EffectiveDate: {self.EffectiveDate.strftime('%d-%m-%Y')}"
         ]
-
         if self.To:
             parts.append(f"To: {self.To}")
-
-        if self.CreatedBy:
-            parts.append(f"CreatedBy: {self.CreatedBy}")
-
         return ", ".join(parts)
-
