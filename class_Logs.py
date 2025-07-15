@@ -84,9 +84,17 @@ class Logs:
         self.temp_log = None
 
 
-    def add_recursive(interval:int, end:datetime ): #Interval tiene que darse en dias (Ej, cada semana = 7)
+    def add_recursive(self,interval:int, end:datetime ): #Interval tiene que darse en dias (Ej, cada semana = 7)
         recursive_operation = gestor.add_operation() #generar funcion en una clase gestor que cree operaciones  TO DO
-        
+        i = 0 #Contador para que no se generen mas de 365 operaciones
+        while (recursive_operation.EffectiveDate <= end) and (i <= 365):
+            self.add_log(recursive_operation)
+            recursive_operation = gestor.add_operation()
+            i += 1
+        if i == 365:
+            print("Se ha programado la operacion 365 veces. Maximo alcanzado \n")
+        else:
+            print(f"Se ha programado la operacion {i} veces \n")      
 
 if __name__ == "__main__":
 
