@@ -13,26 +13,54 @@ class Logs:
             "Concepto": operation.Concept,
             "Importe": operation.signed_value,
             "IsIncome": operation.IsIncome,
-            "To": operation.To,
-            "CreatedBy": operation.CreatedBy ,
+            "Destinatario": operation.To,
+            "Recursivo": operation.Recursive,
+            "Usuario": operation.CreatedBy,
             "Fecha_Creacion": operation.CreationDate,
             "Fecha_Ejecucion": operation.EffectiveDate
         }
         self.data.append(datalog)
 
+##WORK ON THIS
     def get_log(self, OperationID: int):
         for log in self.data:
             if log["ID"] == OperationID:
-                return log
+                return  log
         return None
+    
+    def remove_normal_log(self, log:Operation):
+        self.data.remove(log)
+        print(f"La operación '{log['ID']}: {log['Concepto']}' creada el {log['Fecha_Creacion']} ha sido eliminada")
+
+
+    def remove_recursive_log(self, log:Operation, confirmation):
+        if confirmation == 0:
+            for log in self.temp_log:
+                if log.CreationDate > datetime.date.today:
+                    self.remove_normal_log(log)
+        else:
+            fecha = input("Introduce la fecha de la operacion que quieres eliminar: ")
+
 
     def remove_log(self, logID: int):
         log = self.get_log(logID)
-        if log:
-            self.data.remove(log)
-            print(f"La operación '{log['ID']}: {log['Concepto']}' creada el {log['Fecha_Creacion']} ha sido eliminada")
+
+        if log.Recursive == False:
+            confirmation = input("Se va a borrar la operación {log}. Quieres continuar? y/n \n ")
+
+            if confirmation.lower == "y":
+                self.remove_normal_log(log) #Borrar un log no recursivo
+                print()
+            else:
+                print("Operación abortada \n")
+                return
+            
         else:
-            print("Error, no existe ninguna operación asociada a este ID")
+            #Mostrar los logs afectados: 
+            self.reset_temp_log()
+            self.filter(ID = logID)
+            confirmation = input("Quieres borrar todas las operaciones futuras (0) o una operación concreta (1) ? \n")
+            self.remove_recursive_log()
 
 
 
@@ -54,7 +82,7 @@ class Logs:
         # Añadir columnas adicionales manteniendo el orden y evitando duplicados
 
         if show_columns ==  "*": #Usando show_columns = "*" entonces generará el log completo
-            showing_columns = base_columns + ["IsIncome", "To", "CreatedBy" ]
+            showing_columns = base_columns + ["IsIncome", "Destinatario", "Usuario", "Recursivo" ]
         elif show_columns:
             showing_columns = base_columns + [col for col in show_columns if col not in base_columns]
         else:
@@ -115,7 +143,7 @@ if __name__ == "__main__":
 
 
     #ToDo
-    #def add_recursive (falta esto)
+    #def add_recursive (falta esto) -> El ID de las operaciones recursive va a ser el mismo, necesitamos distinguirlos por todo el campo o por ID, podemos usar un campo recursive en operation
     #Falta pensar en como  crear la interfaz para que funcione con comandos sencillos
     
 
