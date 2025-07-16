@@ -2,13 +2,14 @@ import datetime
 from typing import Optional
 
 class Operation:
-    def __init__(self, ID: int, Concept: str, Value: float, IsIncome: bool, To = None, CreatedBy = None, CreationDate = None, EffectiveDate = None):
+    def __init__(self, ID: int, Concept: str, Value: float, IsIncome: bool, Recursive: bool,  To = None, CreatedBy = None, CreationDate = None, EffectiveDate = None):
 
         self.ID = ID
         self.Concept = Concept
         self.Value = Value
         self.IsIncome = IsIncome
         self.To = To
+        self.Recursive = Recursive
         self.CreatedBy = CreatedBy
 
         self._CreationDate = CreationDate or datetime.date.today()
@@ -69,6 +70,18 @@ class Operation:
             self._IsIncome = value
         else:
             raise TypeError("Este campo solo acepta booleanos")
+        
+    @property
+    def Recursive(self):
+        return self._Recursive
+    
+    @Recursive.setter
+    def Recursive(self,value):
+        if isinstance(value, bool):
+            self._IsIncome = value
+        else:
+            raise TypeError("Este campo solo acepta booleanos")
+
 
     @property
     def To(self):
