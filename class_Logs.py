@@ -22,12 +22,19 @@ class Logs:
         self.data.append(datalog)
 
 ##WORK ON THIS
-    def get_log(self, OperationID: int):
-        for log in self.data:
-            if log["ID"] == OperationID:
-                return  log
-        return None
-    
+    def get_log(self, OperationID: int, logdate = None):
+        if logdate is None:
+            for log in self.data:
+                if log["ID"] == OperationID:
+                    return  log
+            return None
+        
+        else:
+            for log in self.data:
+                if (log["ID"] == OperationID) and (log["CreationDate"] == logdate):
+                    return log 
+            return None
+
     def remove_normal_log(self, log:Operation):
         self.data.remove(log)
         print(f"La operación '{log['ID']}: {log['Concepto']}' creada el {log['Fecha_Creacion']} ha sido eliminada")
@@ -39,29 +46,37 @@ class Logs:
                 if log.CreationDate > datetime.date.today:
                     self.remove_normal_log(log)
         else:
-            fecha = input("Introduce la fecha de la operacion que quieres eliminar: ")
+            fechastr = input("Introduce la fecha de la operacion que quieres eliminar: (Formato YYYY - MM - DD ) ") #pasar esto a formato date
+            fecha = datetime.stprtime(fechastr, "%Y-%m-%d")
+            delete_log = self.get_log(log.ID, fecha)
+            self.remove_normal_log(delete_log)
+
+
 
 
     def remove_log(self, logID: int):
         log = self.get_log(logID)
+        if log:
+            if log.Recursive == False:
+                confirmation = input("Se va a borrar la operación {log}. Quieres continuar? y/n \n ")
 
-        if log.Recursive == False:
-            confirmation = input("Se va a borrar la operación {log}. Quieres continuar? y/n \n ")
+                if confirmation.lower == "y":
+                    self.remove_normal_log(log) #Borrar un log no recursivo
+                    print()
+                else:
+                    print("Operación abortada \n")
+                    return
+                
+            elif log.Recursive == True:
+                #Mostrar los logs afectados: 
+                self.reset_temp_log()
+                self.filter(ID = logID)
+                confirmation = input("Quieres borrar todas las operaciones futuras (0) o una operación concreta (1) ? \n")
+                self.remove_recursive_log()
 
-            if confirmation.lower == "y":
-                self.remove_normal_log(log) #Borrar un log no recursivo
-                print()
             else:
-                print("Operación abortada \n")
-                return
-            
-        else:
-            #Mostrar los logs afectados: 
-            self.reset_temp_log()
-            self.filter(ID = logID)
-            confirmation = input("Quieres borrar todas las operaciones futuras (0) o una operación concreta (1) ? \n")
-            self.remove_recursive_log()
-
+                print("Operacion corrupta.")
+                self.remove_normal_log(log)
 
 
 
@@ -127,7 +142,7 @@ class Logs:
 if __name__ == "__main__":
 
     logs = Logs()
-    op1 = Operation(1,  "Pago Luz", 100.0, False, To="Endesa", CreatedBy="Usuario1")
+    op1 = Operation(1,  "Pago Luz", 100.0, False, To="Endesa", CreatedBy="Usuario1",)
     op2 = Operation(2,  "Sueldo", 1500.0, True, CreatedBy="EmpresaX")
 
     logs.add_log(op1)
