@@ -1,6 +1,7 @@
 from class_operation import Operation
 import pandas as pd
 import datetime
+import re
 
 class Logs:
     def __init__(self):
@@ -31,25 +32,32 @@ class Logs:
         
         else:
             for log in self.data:
-                if (log["ID"] == OperationID) and (log["CreationDate"] == logdate):
+                if (log["ID"] == OperationID) and (log["Fecha_Creacion"] == logdate):
                     return log 
             return None
 
     def remove_normal_log(self, log:Operation):
         self.data.remove(log)
-        print(f"La operación '{log['ID']}: {log['Concepto']}' creada el {log['Fecha_Creacion']} ha sido eliminada")
+        print(f"La operación '{log['ID']}: {log['Concepto']}' ({log['Importe']}) creada el {log['Fecha_Creacion']} ha sido eliminada")
+
 
 
     def remove_recursive_log(self, log:Operation, confirmation):
+        today = datetime.date.today()
         if confirmation == 0:
-            for log in self.temp_log:
-                if log.CreationDate > datetime.date.today:
-                    self.remove_normal_log(log)
-        else:
-            fechastr = input("Introduce la fecha de la operacion que quieres eliminar: (Formato YYYY - MM - DD ) ") #pasar esto a formato date
-            fecha = datetime.stprtime(fechastr, "%Y-%m-%d")
-            delete_log = self.get_log(log.ID, fecha)
+            for _, entry in self.temp_log.iterrows(): #Las operaciones recursivas deben tener el mismo ID
+                if entry["Fecha_Creacion"] > today:
+                    self.remove_normal_log(entry.to_dict()) #Aqui hay un error
+
+        elif confirmation == 1:
+            fechastr = input("Introduce la fecha de la operacion que quieres eliminar: (Formato YYYY - MM - DD ) ")
+            fechastr= re.sub(r"\s+", "", fechastr)
+            fecha = datetime.datetime.strptime(fechastr, "%Y-%m-%d").date()
+            delete_log = self.get_log(log["ID"], fecha)
             self.remove_normal_log(delete_log)
+
+        else:
+            print("Cancelando operacion... \n")
 
 
 
@@ -57,8 +65,8 @@ class Logs:
     def remove_log(self, logID: int):
         log = self.get_log(logID)
         if log:
-            if log.Recursive == False:
-                confirmation = input("Se va a borrar la operación {log}. Quieres continuar? y/n \n ")
+            if log["Recursivo"] == False:
+                confirmation = input("Se va a borrar la operación {log}. \n Quieres continuar? y/n \n ")
 
                 if confirmation.lower == "y":
                     self.remove_normal_log(log) #Borrar un log no recursivo
@@ -67,12 +75,12 @@ class Logs:
                     print("Operación abortada \n")
                     return
                 
-            elif log.Recursive == True:
+            elif log["Recursivo"] == True:
                 #Mostrar los logs afectados: 
                 self.reset_temp_log()
                 self.filter(ID = logID)
                 confirmation = input("Quieres borrar todas las operaciones futuras (0) o una operación concreta (1) ? \n")
-                self.remove_recursive_log()
+                self.remove_recursive_log(log, int(confirmation)) #ERROR Como estoy especificando que borrar?
 
             else:
                 print("Operacion corrupta.")
@@ -142,8 +150,8 @@ class Logs:
 if __name__ == "__main__":
 
     logs = Logs()
-    op1 = Operation(1,  "Pago Luz", 100.0, False, To="Endesa", CreatedBy="Usuario1",)
-    op2 = Operation(2,  "Sueldo", 1500.0, True, CreatedBy="EmpresaX")
+    op1 = Operation(1,  "Pago Luz", 100.0, False, False, To="Endesa", CreatedBy="Usuario1",)
+    op2 = Operation(2,  "Sueldo", 1500.0, True, True, CreatedBy="EmpresaX")
 
     logs.add_log(op1)
     logs.add_log(op2)
@@ -153,9 +161,9 @@ if __name__ == "__main__":
     logs.filter(IsIncome = False )
     logs.view_logs(show_columns= "*")
     logs.view_logs(show_columns= None, reset= True) #El campo reset limpia el filtro sobre el que se ejecuta 
-   
-
-
+    logs.filter(Recursivo = True)
+    logs.remove_log(2)
+    logs.view_logs()
 
     #ToDo
     #def add_recursive (falta esto) -> El ID de las operaciones recursive va a ser el mismo, necesitamos distinguirlos por todo el campo o por ID, podemos usar un campo recursive en operation
