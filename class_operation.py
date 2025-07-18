@@ -124,7 +124,7 @@ class Operation:
             f"Concept: {self.Concept}",
             f"Value: {self.Value}€",
             f"CreationDate: {self.CreationDate}",
-            f"EffectiveDate: {self.EffectiveDate.strftime('%d-%m-%Y')}"
+            f"EffectiveDate: {self.EffectiveDate}"
         ]
         if self.To:
             parts.append(f"To: {self.To}")
