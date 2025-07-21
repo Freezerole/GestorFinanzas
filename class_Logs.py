@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
 
     #ToDo
-    #def add_recursive (falta esto)
+    # Solucionar bugs de eliminado recursivo (0)  y ordenar el viewlogs para que ordene entradas por fecha
     #Falta pensar en como  crear la interfaz para que funcione con comandos sencillos
     
 
