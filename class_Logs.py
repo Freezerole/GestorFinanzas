@@ -100,12 +100,14 @@ class Logs:
         else:
             df = pd.DataFrame(self.data)
 
+        df = df.sort_values( 'Fecha_Creacion', ascending= True)
+        
         base_columns = ["ID", "Concepto", "Fecha_Creacion", "Fecha_Ejecucion", "Importe"]
 
         # Añadir columnas adicionales manteniendo el orden y evitando duplicados
 
         if show_columns ==  "*": #Usando show_columns = "*" entonces generará el log completo
-            showing_columns = base_columns + ["IsIncome", "Destinatario", "Usuario", "Recursivo" ]
+            showing_columns = base_columns + ["Recursivo", "Destinatario", "Usuario"]
         elif show_columns:
             showing_columns = base_columns + [col for col in show_columns if col not in base_columns]
         else:
@@ -150,7 +152,7 @@ class Logs:
 if __name__ == "__main__":
 
     logs = Logs()
-    op1 = Operation(1,  "Pago Luz", 100.0, False, False, To="Endesa", CreatedBy="Usuario1",)
+    op1 = Operation(1,  "Pago Luz", 100.0, False, False, To="Endesa", CreatedBy="Usuario1")
     op2 = Operation(2,  "Sueldo", 1500.0, True, True, CreatedBy="EmpresaX")
 
     logs.add_log(op1)
