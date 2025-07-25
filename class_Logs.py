@@ -46,6 +46,7 @@ class Logs:
                 ~((self.temp_log["ID"] == log["ID"]) & (self.temp_log["Fecha_Creacion"] == log["Fecha_Creacion"]))
             ]
 
+
     def remove_recursive_log(self, log: dict, confirmation):
         today = datetime.date.today()
         if confirmation == 0:
@@ -101,6 +102,7 @@ class Logs:
             else:
                 print("Operación corrupta.")
                 self.remove_normal_log(log)
+
 
     def view_logs(self, show_columns=None, reset=False):
 
