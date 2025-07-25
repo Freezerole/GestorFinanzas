@@ -17,3 +17,6 @@ from class_logs import Logs
     Acceder a tu cuenta con usuario y contraseña
     Menu y arbol de decisiones --> Archivo main Bajo la funcion iniciar()
 """
+
+def create_operation():
+    print("Empecemos:")
