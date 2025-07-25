@@ -164,7 +164,7 @@ class Logs:
         i = 0
         while (recursive_operation.EffectiveDate <= end) and (i <= 365):
             self.add_log(recursive_operation)
-            recursive_operation = gestor.add_operation()
+            recursive_operation = gestor.add_operation() #TODO crear esta funcion y aprovecharla
             i += 1
 
         if i == 365:

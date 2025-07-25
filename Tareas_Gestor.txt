@@ -1,0 +1,62 @@
+🎯 Alta prioridad (funcionalidad esencial)
+ Creación de operaciones desde inputs (CLI)
+
+	Facilita interfaz para añadir ingresos/gastos normales y recurrentes.
+
+	Cálculo del saldo disponible por fecha (virtual balance).
+
+	Considera signed_value de todas las operaciones con Fecha_Ejecucion <= fecha. Útil para ver "cuánto tendré a fin de mes".
+
+ 	Balance por mes, semana, año con breakdown por categoría (si añades etiquetas después).
+
+	Persistencia de datos (pickle, JSON o CSV con reload automático). Ahora todo es volátil. Es importante que Logs.data se pueda guardar/cargar fácilmente.
+
+
+
+💡 Media prioridad (mejoras de análisis y presentación)
+ Gráficas y estadísticas:
+
+	pandas.groupby('Fecha_Ejecucion')["Importe"].sum() por mes. Gráficos de barras para ingresos/gastos.
+
+	Proyección futura de saldo.
+
+	 Etiquetas opcionales por operación (categoría: "Comida", "Alquiler", "Transporte") para análisis por tipo.
+
+	 Función Nuke -> Logs.data.clear(), confirmar con doble input tipo "Escribe ELIMINAR para confirmar".
+
+ 	Menú CLI:
+		Usar argparse, input() o librerías tipo questionary o PyInquirer para árbol de decisiones más legible.
+
+
+
+🧪 Baja prioridad (cosas extra si el proyecto crece)
+ Multiusuario con login básico (simple dict de usuarios + contraseña hasheada).
+
+	 Soporte para divisas o conversión automática (si crece).
+
+	 Scripting para automatizar gastos habituales desde archivo CSV.
+
+
+
+
+⚙️ Rendimiento (para 30,000 operaciones)
+✔️ Lo que aguanta sin problema:
+Tu sistema actual (usando list + DataFrame) funciona bien hasta 50,000-100,000 operaciones sin problema si:
+
+No haces filtros hipercomplejos continuamente.
+
+No generas gráficos muy pesados en bucle.
+
+
+
+❗ Posibles mejoras a futuro si crece mucho:
+DataFrame como fuente oficial de self.data:
+
+	En lugar de usar lista de diccionarios y convertir a DataFrame cada vez. Alternativa: mantener self.data = pd.DataFrame(...) desde el principio.
+
+	Indexar por ID y Fecha_Creacion:
+
+	Agiliza búsquedas, especialmente en get_log.
+
+	Persistencia incremental: Si trabajas con 30k operaciones, guarda/carga desde disco con caché.
+
