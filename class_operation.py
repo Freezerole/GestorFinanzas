@@ -78,7 +78,7 @@ class Operation:
     @Recursive.setter
     def Recursive(self,value):
         if isinstance(value, bool):
-            self._IsIncome = value
+            self._Recursive = value
         else:
             raise TypeError("Este campo solo acepta booleanos")
 
