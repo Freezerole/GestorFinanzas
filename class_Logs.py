@@ -1,4 +1,5 @@
 from class_operation import Operation
+from class_gestor import Gestor
 import pandas as pd
 import datetime
 import re
@@ -160,11 +161,11 @@ class Logs:
         self.temp_log = None
 
     def add_recursive(self, interval: int, end: datetime):
-        recursive_operation = gestor.add_operation()
+        recursive_operation = Gestor.add_operation()                                                         #TODO
         i = 0
         while (recursive_operation.EffectiveDate <= end) and (i <= 365):
             self.add_log(recursive_operation)
-            recursive_operation = gestor.add_operation() #TODO crear esta funcion y aprovecharla
+            recursive_operation = Gestor.add_operation()                                                     #TODO crear esta funcion y aprovecharla
             i += 1
 
         if i == 365:
@@ -183,7 +184,7 @@ if __name__ == "__main__":
     logs.add_log(op2)
 
     logs.view_logs(show_columns="*")
-    logs.filter(Recursivo=True)
+    logs.filter(Recursivo=True, Concepto = "Sueldo", Importe = 1500)
     print("procediendo al borrado")
     logs.remove_log(2)
 
