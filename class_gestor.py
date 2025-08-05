@@ -145,16 +145,22 @@ class Gestor:
         print("\n\tCAMPOS OPCIONALES (pulsa 'j' para saltar):\n")
 
         To = get_optional_str("Nombre de quien lo envía:\n")
-        if To is None and To != "": return None
+        if To is None : return None
 
         CreatedBy = get_optional_str("Nombre de quien lo recibe:\n")
-        if CreatedBy is None and CreatedBy != "": return None
-
+        if CreatedBy is None: return None
+       
         CreationDate = get_optional_date("Fecha de creación (YYYY-MM-DD):\n")
-        if CreationDate is None and CreationDate != "": return None
+        if CreationDate is None: return None
+##
 
-        EffectiveDate = get_optional_date("Fecha efectiva (YYYY-MM-DD):\n")
-        if EffectiveDate is None and EffectiveDate != "": return None
+        if Recursive == False:
+            EffectiveDate = get_optional_date("Fecha efectiva (YYYY-MM-DD):\n")
+            if EffectiveDate is None: return None
+
+        else:
+            EffectiveDate = None
+##
 
         ID = self.create_id(Recursive, Concept, Value)
 
@@ -170,4 +176,78 @@ class Gestor:
             "EffectiveDate": EffectiveDate
         }
 
+#TENGO QUE ENCONTRAR UN INDICADOR EN LOS CAMPOS OPCIONALES DE CANCELACION QUE NO SEA IGUAL AL DE SALTO: TODO
 
+    def create_operation_from_data(self, data, effective_date=None):
+        return Operation(
+            ID=data["ID"],
+            Concept=data["Concept"],
+            Value=data["Value"],
+            IsIncome=data["IsIncome"],
+            Recursive=data["Recursive"],
+            To=data.get("To"),
+            CreatedBy=data.get("CreatedBy"),
+            CreationDate=effective_date or data.get("CreationDate"),
+            EffectiveDate=effective_date or data.get("EffectiveDate")
+        )
+
+    def add_recursive_op(self, data):
+        def get_date(prompt):
+            while True:
+                value = input(prompt).strip()
+                if value.lower() == "j":
+                    return None
+                try:
+                    return datetime.datetime.strptime(value, "%Y-%m-%d").date()
+                except ValueError:
+                    print("Formato inválido. Usa YYYY-MM-DD o 'j' para omitir.")
+
+        # Intervalo de repetición
+        while True:
+            try:
+                interval_days = int(input("Cada cuántos días se repite la transacción: "))
+                if interval_days <= 0:
+                    raise ValueError
+                break
+            except ValueError:
+                print("Introduce un número entero positivo.")
+
+        start_date = data.get("EffectiveDate") or datetime.date.today()
+        end_date = get_date("Fecha de finalización (YYYY-MM-DD o 'j' para indefinida): ")
+
+
+        i = 0
+        current_date = start_date
+
+        if end_date is None:
+            while i < 60:
+                op = self.create_operation_from_data(data, effective_date=current_date)
+                Logs.add_log(op)
+                current_date += datetime.timedelta(days=interval_days)
+                i += 1
+
+            print(f"Se han creado {i} operaciones. Límite máximo alcanzado.")
+
+        else:
+            while current_date <= end_date:
+                op = self.create_operation_from_data(data, effective_date=current_date)
+                Logs.add_log(op)
+                current_date += datetime.timedelta(days=interval_days)
+                i += 1
+            print(f"Se han creado {i} operaciones recursivas.")
+
+
+
+    def add_operation(self):
+        data = self.get_operation_info()
+        if data is None:
+            print("Error en la creación de la operación.")
+            return
+
+        if data["Recursive"]:
+            self.add_recursive_op(data)
+            print("Operaciones recursivas creadas con éxito.")
+        else:
+            op = self.create_operation_from_data(data)
+            Logs.add_log(op)
+            print("Operación creada con éxito.")

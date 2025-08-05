@@ -160,18 +160,7 @@ class Logs:
     def reset_temp_log(self):
         self.temp_log = None
 
-    def add_recursive(self, interval: int, end: datetime):
-        recursive_operation = Gestor.add_operation()                                                         #TODO
-        i = 0
-        while (recursive_operation.EffectiveDate <= end) and (i <= 365):
-            self.add_log(recursive_operation)
-            recursive_operation = Gestor.add_operation()                                                     #TODO crear esta funcion y aprovecharla
-            i += 1
-
-        if i == 365:
-            print("Se ha programado la operación 365 veces. Máximo alcanzado \n")
-        else:
-            print(f"Se ha programado la operación {i} veces \n")
+    
 
 
 if __name__ == "__main__":
