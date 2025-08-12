@@ -1,5 +1,4 @@
 from class_operation import Operation
-from class_gestor import Gestor
 import pandas as pd
 import datetime
 import re

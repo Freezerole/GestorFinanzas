@@ -14,23 +14,21 @@ class IDGen:
         return self.n
 
 
-Logs = Logs()
-Generador = IDGen()
-
+#TODO: A partir de la base de datos generar um df completo con el que poder exportar datos csv y trabajar.  MOdo de persistencia csv
 
 #TODO:
 """
         Crear una funcion que genere por inputs las operaciones DONE
         Recursiva y normal (Ganancias y Perdidas) DONE
     Guardar datos del usuario (Nombre, Dinero, Nº Operaciones (Entre x e y Fechas) )
-    Tracker del dinero que lleva 
-    Tracker del dinero que piensa gastar x mes y el que le va a quedar (Cuenta "Virtual" (setAside))
+        Tracker del dinero que lleva DONE 
+        Tracker del dinero que piensa gastar x mes y el que le va a quedar (Cuenta "Virtual" (setAside)) DONE
     Visualizador de logs
-    Borrado de operaciones demasiado antiguas
+    Borrado de operaciones demasiado antiguas #PROBLEMA CON LA FORMA DE CALCULAR EL BALANCE
     Funcion Nuke (elimina todo y empieza de 0 la cuenta)
-    Balance por mes/año/semana
+        Balance por mes/año/semana DONE
     Grafico y stats con Pandas
-    Evitar el reseteo tras ejecuciones (guardar los datos)
+    Evitar el reseteo tras ejecuciones (guardar los datos) 
     Acceder a tu cuenta con usuario y contraseña
     Menu y arbol de decisiones --> Archivo main Bajo la funcion iniciar()
     Crear func para importar el dataset a R y realizar analisis  #Primer objetivo sera hacer en R un grafico simple de los datos exportados de aqui
@@ -39,21 +37,27 @@ Generador = IDGen()
 
 class Gestor:
     def __init__(self):
+        #iniciadores:
+        self.logs = Logs()
+        self.generador = IDGen()
+
+        #atributos:
         self.user_data = []
         self.real_balance = 0.0 #float
         self.virtual_balance = 0.0 #float
         self.total_op = 0 # int
+        self.delta_balance = 0.0 #float
 
     def create_id(self, recursive:bool, Concept:str, Value:float):
         if recursive:
-            Logs.reset_temp_log()
-            Logs.filter(Recursivo = recursive, Concepto = Concept, Importe = Value)
-            if Logs.temp_log is None or Logs.temp_log.empty: #caso de que sea el primer elemento recursivo de una operacion
-                 return Generador.generarID()
+            self.logs.reset_temp_log()
+            self.logs.filter(Recursivo = recursive, Concepto = Concept, Importe = Value)
+            if self.logs.temp_log is None or self.logs.temp_log.empty: #caso de que sea el primer elemento recursivo de una operacion
+                 return self.generador.generarID()
             else:
-                return Logs.temp_log.iloc[0]["ID"]
+                return self.logs.temp_log.iloc[0]["ID"]
         else: 
-            return Generador.generarID()
+            return self.generador.generarID()
 
 
     def get_operation_info(self):
@@ -177,7 +181,7 @@ class Gestor:
             "EffectiveDate": EffectiveDate
         }
 
-    def get_date(prompt):
+    def get_date(self, prompt):
         while True:
             value = input(prompt).strip()
             if value.lower() == "j":
@@ -215,7 +219,7 @@ class Gestor:
 
         while True:
                 start_date = data.get("EffectiveDate") or datetime.date.today()
-                end_date = self.get_date("Fecha de finalización (YYYY-MM-DD o 'j' para indefinida): ")
+                end_date =self.get_date("Fecha de finalización (YYYY-MM-DD o 'j' para indefinida): ")
 
                 if end_date and start_date > end_date:
                     print("La fecha de inicio es posterior a la fecha de finalización.")
@@ -228,7 +232,7 @@ class Gestor:
         if end_date is None:
             while i < 60:
                 op = self.create_operation_from_data(data, effective_date=current_date)
-                Logs.add_log(op)
+                self.logs.add_log(op)
                 current_date += datetime.timedelta(days=interval_days)
                 i += 1
 
@@ -237,7 +241,7 @@ class Gestor:
         else:
             while current_date <= end_date:
                 op = self.create_operation_from_data(data, effective_date=current_date)
-                Logs.add_log(op)
+                self.logs.add_log(op)
                 current_date += datetime.timedelta(days=interval_days)
                 i += 1
             print(f"Se han creado {i} operaciones recursivas.")
@@ -255,13 +259,12 @@ class Gestor:
             print("Operaciones recursivas creadas con éxito.")
         else:
             op = self.create_operation_from_data(data)
-            Logs.add_log(op)
+            self.logs.add_log(op)
             print("Operación creada con éxito.")
 
-#TODO
-        #Podria buscar una forma mas eficiente de hacer puntos de guardado para no tener que empezar siempre por el principio   
+
     def find_true_balance(self, date = datetime.date.today()): #esta fecha viene dada en teoria por una entrada de log, para ver el balance al momento de hacer un pedido # si se borran entradas anteriores, como mantener eso
-        df = pd.DataFrame(Logs.data) #dataframe
+        df = pd.DataFrame(self.logs.data) #dataframe
         df_filter = df[df["Fecha_Ejecucion"] <= pd.Timestamp(date)]
 
         if df_filter.empty:
@@ -274,28 +277,30 @@ class Gestor:
         return [total_op, real_balance]
         
  
-    def actualizar_true_balance(self):
+    def actualizar_balance(self):
         self.total_op, self.real_balance = self.find_true_balance()
+        self.delta_balance = self.find_virtual_balance(manual= False) #Actualiza de forma automatica el virtual a un mes de plazo sin pedir imputs. Añade una cuenta de el balance estimado a final de mes
 
 
 
-    def get_deltatime(self):
+    def get_deltatime(self, delta = None):
         today = datetime.date.today()
-        while True:
-            delta_str = input(f"Indica el número de meses que quieres que pasen desde el {today}: ").strip()
-            
-            if delta_str == "":
-                delta = 1
-                break
-
-            try:
-                delta = int(delta_str)
-                if delta > 0:
+        if delta == None:
+            while True:
+                delta_str = input(f"Indica el número de meses que quieres que pasen desde el {today}: ").strip()
+                
+                if delta_str == "":
+                    delta = 1
                     break
-                else:
-                    print("Error: el número debe ser positivo.")
-            except ValueError:
-                print("Error: indica un número entero positivo de meses, o no escribas nada.\n")
+
+                try:
+                    delta = int(delta_str)
+                    if delta > 0:
+                        break
+                    else:
+                        print("Error: el número debe ser positivo.")
+                except ValueError:
+                    print("Error: indica un número entero positivo de meses, o no escribas nada.\n")
 
         end_date = today + relativedelta(months=delta)
         return end_date
@@ -303,12 +308,22 @@ class Gestor:
     
 
 
-    def find_virtual_balance(self): #fecha en la que dejas de estimar (para evitar problemas con recursivos) sea de un mes respecto a la fecha actual 
-        end_date = self.get_deltatime()
+    def find_virtual_balance(self, manual = True): #fecha en la que dejas de estimar (para evitar problemas con recursivos) sea de un mes respecto a la fecha actual 
+        if manual:
+            end_date = self.get_deltatime()
+        else:
+            end_date = self.get_deltatime(delta=1)
+
         virtual_op, virtual_balance = self.find_true_balance(date = end_date)
         
-        self.virtual_balance = virtual_balance
-        incoming_op = virtual_op - self.total_op
-        print(f"Para el {end_date}, tu saldo será de {self.virtual_balance}€ y habrás realizado {incoming_op} operaciones nuevas!")
-        print(f"Balance total en el periodo: {virtual_balance - self.real_balance}€. \n")
+        delta_balance = virtual_balance - self.real_balance
 
+        if manual:  
+            incoming_op = virtual_op - self.total_op
+            print(f"Para el {end_date}, tu saldo será de {virtual_balance}€ y habrás realizado {incoming_op} operaciones nuevas!")
+            print(f"Balance total en el periodo: {delta_balance}€. \n")
+
+        else: 
+            self.virtual_balance = virtual_balance #actualizar balance
+
+        return delta_balance
