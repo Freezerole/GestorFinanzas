@@ -1,7 +1,8 @@
 from class_operation import Operation
 from class_logs import Logs
 import datetime
-import pandas
+from dateutil.relativedelta import relativedelta  
+import pandas as pd
 
 #Clase generadora de ID´s 
 class IDGen:
@@ -19,8 +20,8 @@ Generador = IDGen()
 
 #TODO:
 """
-    Crear una funcion que genere por inputs las operaciones
-        Recursiva y normal (Ganancias y Perdidas)
+        Crear una funcion que genere por inputs las operaciones DONE
+        Recursiva y normal (Ganancias y Perdidas) DONE
     Guardar datos del usuario (Nombre, Dinero, Nº Operaciones (Entre x e y Fechas) )
     Tracker del dinero que lleva 
     Tracker del dinero que piensa gastar x mes y el que le va a quedar (Cuenta "Virtual" (setAside))
@@ -39,9 +40,9 @@ Generador = IDGen()
 class Gestor:
     def __init__(self):
         self.user_data = []
-        self.real_balance = None #float
-        self.estimated_balance = None #float
-    
+        self.real_balance = 0.0 #float
+        self.virtual_balance = 0.0 #float
+        self.total_op = 0 # int
 
     def create_id(self, recursive:bool, Concept:str, Value:float):
         if recursive:
@@ -108,7 +109,7 @@ class Gestor:
             value = input(prompt).strip()
             if value.lower() == "q":
                 print("Operación cancelada por el usuario.")
-                return None
+                return False
             if value.lower() == "j" or value == "":
                 return None
             return value
@@ -118,7 +119,7 @@ class Gestor:
                 value = input(prompt).strip()
                 if value.lower() == "q":
                     print("Operación cancelada por el usuario.")
-                    return None
+                    return False #Se usa false para separar del None
                 if value.lower() == "j" or value == "":
                     return None
                 try:
@@ -145,18 +146,18 @@ class Gestor:
         print("\n\tCAMPOS OPCIONALES (pulsa 'j' para saltar):\n")
 
         To = get_optional_str("Nombre de quien lo envía:\n")
-        if To is None : return None
+        if To is False : return None
 
         CreatedBy = get_optional_str("Nombre de quien lo recibe:\n")
-        if CreatedBy is None: return None
+        if CreatedBy is False: return None
        
         CreationDate = get_optional_date("Fecha de creación (YYYY-MM-DD):\n")
-        if CreationDate is None: return None
+        if CreationDate is False: return None
 ##
 
         if Recursive == False:
             EffectiveDate = get_optional_date("Fecha efectiva (YYYY-MM-DD):\n")
-            if EffectiveDate is None: return None
+            if EffectiveDate is False: return None
 
         else:
             EffectiveDate = None
@@ -176,7 +177,16 @@ class Gestor:
             "EffectiveDate": EffectiveDate
         }
 
-#TENGO QUE ENCONTRAR UN INDICADOR EN LOS CAMPOS OPCIONALES DE CANCELACION QUE NO SEA IGUAL AL DE SALTO: TODO
+    def get_date(prompt):
+        while True:
+            value = input(prompt).strip()
+            if value.lower() == "j":
+                return None
+            try:
+                return datetime.datetime.strptime(value, "%Y-%m-%d").date()
+            except ValueError:
+                print("Formato inválido. Usa YYYY-MM-DD o 'j' para omitir.")
+
 
     def create_operation_from_data(self, data, effective_date=None):
         return Operation(
@@ -192,15 +202,6 @@ class Gestor:
         )
 
     def add_recursive_op(self, data):
-        def get_date(prompt):
-            while True:
-                value = input(prompt).strip()
-                if value.lower() == "j":
-                    return None
-                try:
-                    return datetime.datetime.strptime(value, "%Y-%m-%d").date()
-                except ValueError:
-                    print("Formato inválido. Usa YYYY-MM-DD o 'j' para omitir.")
 
         # Intervalo de repetición
         while True:
@@ -212,9 +213,14 @@ class Gestor:
             except ValueError:
                 print("Introduce un número entero positivo.")
 
-        start_date = data.get("EffectiveDate") or datetime.date.today()
-        end_date = get_date("Fecha de finalización (YYYY-MM-DD o 'j' para indefinida): ")
+        while True:
+                start_date = data.get("EffectiveDate") or datetime.date.today()
+                end_date = self.get_date("Fecha de finalización (YYYY-MM-DD o 'j' para indefinida): ")
 
+                if end_date and start_date > end_date:
+                    print("La fecha de inicio es posterior a la fecha de finalización.")
+                    continue
+                break
 
         i = 0
         current_date = start_date
@@ -251,3 +257,58 @@ class Gestor:
             op = self.create_operation_from_data(data)
             Logs.add_log(op)
             print("Operación creada con éxito.")
+
+#TODO
+        #Podria buscar una forma mas eficiente de hacer puntos de guardado para no tener que empezar siempre por el principio   
+    def find_true_balance(self, date = datetime.date.today()): #esta fecha viene dada en teoria por una entrada de log, para ver el balance al momento de hacer un pedido # si se borran entradas anteriores, como mantener eso
+        df = pd.DataFrame(Logs.data) #dataframe
+        df_filter = df[df["Fecha_Ejecucion"] <= pd.Timestamp(date)]
+
+        if df_filter.empty:
+            total_op = 0
+            real_balance = 0.0
+        else:
+            total_op = len(df_filter)
+            real_balance = df_filter["Importe"].sum()
+
+        return [total_op, real_balance]
+        
+ 
+    def actualizar_true_balance(self):
+        self.total_op, self.real_balance = self.find_true_balance()
+
+
+
+    def get_deltatime(self):
+        today = datetime.date.today()
+        while True:
+            delta_str = input(f"Indica el número de meses que quieres que pasen desde el {today}: ").strip()
+            
+            if delta_str == "":
+                delta = 1
+                break
+
+            try:
+                delta = int(delta_str)
+                if delta > 0:
+                    break
+                else:
+                    print("Error: el número debe ser positivo.")
+            except ValueError:
+                print("Error: indica un número entero positivo de meses, o no escribas nada.\n")
+
+        end_date = today + relativedelta(months=delta)
+        return end_date
+
+    
+
+
+    def find_virtual_balance(self): #fecha en la que dejas de estimar (para evitar problemas con recursivos) sea de un mes respecto a la fecha actual 
+        end_date = self.get_deltatime()
+        virtual_op, virtual_balance = self.find_true_balance(date = end_date)
+        
+        self.virtual_balance = virtual_balance
+        incoming_op = virtual_op - self.total_op
+        print(f"Para el {end_date}, tu saldo será de {self.virtual_balance}€ y habrás realizado {incoming_op} operaciones nuevas!")
+        print(f"Balance total en el periodo: {virtual_balance - self.real_balance}€. \n")
+
