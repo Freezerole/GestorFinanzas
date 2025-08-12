@@ -14,8 +14,8 @@ class IDGen:
         return self.n
 
 
-#TODO: A partir de la base de datos generar um df completo con el que poder exportar datos csv y trabajar.  MOdo de persistencia csv
-
+#TODO: #A partir de la base de datos generar um df completo con el que poder exportar datos csv y trabajar.  MOdo de persistencia csv
+       #Es necesario guardar datos sobre las operaciones, el ultimo ID usado y a poder ser una base de usuario-contraseña. Ordenar df por fecha e ID 
 #TODO:
 """
         Crear una funcion que genere por inputs las operaciones DONE
