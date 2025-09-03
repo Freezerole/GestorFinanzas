@@ -10,11 +10,11 @@ from class_storage import Storage
 class IDGen:
     def __init__(self, storage):
         self.storage = storage
-        self.n = self.storage.data["meta"]["last_id"]
+        self.n = self.storage.data["global"]["last_id"]
 
     def generarID(self):
         self.n += 1
-        self.storage.data["meta"]["last_id"] = self.n
+        self.storage.data["global"]["last_id"] = self.n
         self.storage.save()
         return self.n
 
