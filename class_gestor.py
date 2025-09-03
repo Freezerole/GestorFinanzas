@@ -3,14 +3,19 @@ from class_Logs import Logs
 import datetime
 from dateutil.relativedelta import relativedelta  
 import pandas as pd
+from class_storage import Storage
 
 #Clase generadora de ID´s 
+#TODO Quitar esta clase y usar la funcion del storage
 class IDGen:
-    def __init__(self):
-        self.n = 0  # estado interno
+    def __init__(self, storage):
+        self.storage = storage
+        self.n = self.storage.data["meta"]["last_id"]
 
     def generarID(self):
         self.n += 1
+        self.storage.data["meta"]["last_id"] = self.n
+        self.storage.save()
         return self.n
 
 
@@ -33,16 +38,18 @@ class IDGen:
     Menu y arbol de decisiones --> Archivo main Bajo la funcion iniciar()
     Crear func para importar el dataset a R y realizar analisis  #Primer objetivo sera hacer en R un grafico simple de los datos exportados de aqui
     Ordenar la tabla por fecha y por ID
+    Relacionar usuarios + contraseñas con operaciones
 """
 
 class Gestor:
     def __init__(self):
         #iniciadores:
-        self.logs = Logs()
-        self.generador = IDGen()
+        self.storage = Storage()
+        self.logs = Logs(self.storage)
+        self.generador = IDGen(self.storage)
 
         #atributos:
-        self.user_data = []
+        self.user_data = self.storage.data["users"]
         self.real_balance = 0.0 #float
         self.virtual_balance = 0.0 #float
         self.total_op = 0 # int

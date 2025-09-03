@@ -129,3 +129,33 @@ class Operation:
         if self.To:
             parts.append(f"To: {self.To}")
         return ", ".join(parts)
+
+
+    def to_dict(self): # 🔹 Convierte el objeto a un dict serializable
+        return {
+            "ID": self.ID,
+            "Concept": self.Concept,
+            "Value": self.Value,
+            "IsIncome": self.IsIncome,
+            "Recursive": self.Recursive,
+            "To": self.To,
+            "CreatedBy": self.CreatedBy,
+            "CreationDate": self.CreationDate.isoformat() if self.CreationDate else None,
+            "EffectiveDate": self.EffectiveDate.isoformat() if self.EffectiveDate else None,
+        }
+
+    
+    @classmethod
+    def from_dict(cls, data):# 🔹 Reconstruye un objeto Operation desde un dict (JSON cargado)
+        return cls(
+            ID=data["ID"],
+            Concept=data["Concept"],
+            Value=data["Value"],
+            IsIncome=data["IsIncome"],
+            Recursive=data.get("Recursive", False),
+            To=data.get("To"),
+            CreatedBy=data.get("CreatedBy"),
+            CreationDate=datetime.date.fromisoformat(data["CreationDate"]) if data.get("CreationDate") else None,
+            EffectiveDate=datetime.date.fromisoformat(data["EffectiveDate"]) if data.get("EffectiveDate") else None,
+        )
+    

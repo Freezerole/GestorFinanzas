@@ -5,25 +5,25 @@ import re
 import copy
 
 class Logs:
-    def __init__(self):
-        self.data = []
+    def __init__(self, storage=None):
+        # Si no se pasa storage, se crea uno temporal en memoria
+        if storage is None:
+            self.storage = {"operations": []}  # modo prueba
+            self.data = self.storage["operations"]
+            
+        else:
+            self.storage = storage
+            self.data = self.storage.data["operations"]
         self.temp_log = None
 
-    def add_log(self, operation: Operation):
-        datalog = {
-            "ID": operation.ID,
-            "Concepto": operation.Concept,
-            "Importe": operation.signed_value,
-            "IsIncome": operation.IsIncome,
-            "Destinatario": operation.To,
-            "Recursivo": operation.Recursive,
-            "Usuario": operation.CreatedBy,
-            "Fecha_Creacion": operation.CreationDate,
-            "Fecha_Ejecucion": operation.EffectiveDate,
-            "Operacion": copy.deepcopy(operation)
-        }
-        self.data.append(datalog)
 
+    def add_log(self, operation):
+        # Guarda la operación en formato diccionario
+        self.data.append(operation.to_dict())
+        if hasattr(self.storage, "save"):
+            self.storage.save()
+
+        
     def get_log(self, OperationID: int, logdate=None):
         if logdate is None:
             for log in self.data:
@@ -32,18 +32,18 @@ class Logs:
             return None
         else:
             for log in self.data:
-                if (log["ID"] == OperationID) and (log["Fecha_Creacion"] == logdate):
+                if (log["ID"] == OperationID) and (log["CreationDate"] == logdate):
                     return log
             return None
 
     def remove_normal_log(self, log: dict):
         self.data.remove(log)
-        print(f"La operación '{log['ID']}: {log['Concepto']}' ({log['Importe']}) creada el {log['Fecha_Creacion']} ha sido eliminada")
+        print(f"La operación '{log['ID']}: {log['Concept']}' ({log['Value']}) creada el {log['CreationDate']} ha sido eliminada")
 
         # Actualizar temp_log si existe y contiene el log eliminado
         if self.temp_log is not None:
             self.temp_log = self.temp_log[
-                ~((self.temp_log["ID"] == log["ID"]) & (self.temp_log["Fecha_Creacion"] == log["Fecha_Creacion"]))
+                ~((self.temp_log["ID"] == log["ID"]) & (self.temp_log["CreationDate"] == log["CreationDate"]))
             ]
 
 
@@ -51,12 +51,13 @@ class Logs:
         today = datetime.date.today()
         if confirmation == 0:
             for _, entry in self.temp_log.iterrows():
-                if entry["Fecha_Creacion"] > today:
-                    delete_log = self.get_log(entry["ID"], entry["Fecha_Creacion"])
+                entry_date = datetime.date.fromisoformat(entry["CreationDate"])
+                if entry_date > today:
+                    delete_log = self.get_log(entry["ID"], entry["CreationDate"])
                     if delete_log:
                         self.remove_normal_log(delete_log)
                     else:
-                        print(f"No se encontró la operación con ID {entry['ID']} y Fecha {entry['Fecha_Creacion']}")
+                        print(f"No se encontró la operación con ID {entry['ID']} y Fecha {entry['CreationDate']}")
         elif confirmation == 1:
             while True:
                 fechastr = input("Introduce la fecha de la operación a eliminar (formato YYYY-MM-DD, o 'q' para cancelar): ")
@@ -72,7 +73,7 @@ class Logs:
                 except ValueError:
                     print("Formato de fecha inválido. Inténtalo de nuevo o presiona 'q' para cancelar.")
 
-            delete_log = self.get_log(log["ID"], fecha)
+            delete_log = self.get_log(log["ID"], fecha.isoformat())
             if delete_log:
                 self.remove_normal_log(delete_log)
             else:
@@ -84,7 +85,7 @@ class Logs:
     def remove_log(self, logID: int):
         log = self.get_log(logID)
         if log:
-            if log["Recursivo"] == False:
+            if log["Recursive"] == False:
                 confirmation = input(f"Se va a borrar la operación {log}. \n ¿Quieres continuar? y/n \n ")
 
                 if confirmation.lower() == "y":
@@ -94,7 +95,7 @@ class Logs:
                     print("Operación abortada \n")
                     return
                 
-            elif log["Recursivo"] == True:
+            elif log["Recursive"] == True:
                 self.reset_temp_log()
                 self.filter(ID=logID)
                 confirmation = int(input("¿Quieres borrar todas las operaciones futuras (0) o una operación concreta (1)? \n"))
@@ -126,10 +127,10 @@ class Logs:
         else:
             df = pd.DataFrame(self.data)
 
-        df = df.sort_values('Fecha_Creacion', ascending=True)
-        base_columns = ["ID", "Concepto", "Fecha_Creacion", "Fecha_Ejecucion", "Importe"]
+        df = df.sort_values('CreationDate', ascending=True)
+        base_columns = ["ID", "Concept", "CreationDate", "EffectiveDate", "Value"]
         if show_columns == "*":
-            showing_columns = base_columns + ["Recursivo", "Destinatario", "Usuario"]
+            showing_columns = base_columns + ["Recursive", "To", "CreatedBy"]
 
         elif show_columns:
             showing_columns = base_columns + [col for col in show_columns if col not in base_columns]
@@ -172,7 +173,7 @@ if __name__ == "__main__":
     logs.add_log(op2)
 
     logs.view_logs(show_columns="*")
-    logs.filter(Recursivo=True, Concepto = "Sueldo", Importe = 1500)
+    logs.filter(Recursive=True, Concept="Sueldo", Value=1500)
     print("procediendo al borrado")
     logs.remove_log(2)
 
