@@ -1,5 +1,5 @@
 from class_operation import Operation
-from class_logs import Logs
+from class_Logs import Logs
 import datetime
 from dateutil.relativedelta import relativedelta  
 import pandas as pd
@@ -23,7 +23,7 @@ class IDGen:
     Guardar datos del usuario (Nombre, Dinero, Nº Operaciones (Entre x e y Fechas) )
         Tracker del dinero que lleva DONE 
         Tracker del dinero que piensa gastar x mes y el que le va a quedar (Cuenta "Virtual" (setAside)) DONE
-    Visualizador de logs
+    Visualizador de logs 
     Borrado de operaciones demasiado antiguas #PROBLEMA CON LA FORMA DE CALCULAR EL BALANCE
     Funcion Nuke (elimina todo y empieza de 0 la cuenta)
         Balance por mes/año/semana DONE
