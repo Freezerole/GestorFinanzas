@@ -129,3 +129,8 @@ class Operation:
         if self.To:
             parts.append(f"To: {self.To}")
         return ", ".join(parts)
+
+    def to_dict(self): 
+        return  {"ID":self.ID, "Concept": self.Concept, "Value": self.Value, 
+                "IsIncome":self.IsIncome, "To":self.To, "Recursive":self.Recursive, "CreatedBy": self.CreatedBy, 
+                "CreationDate": self.CreationDate, "EffectiveDate":self.EffectiveDate}

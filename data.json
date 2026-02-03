@@ -1,1 +1,13 @@
-    
+[
+    {
+        "ID": 2,
+        "Concept": "Sueldo",
+        "Value": 1500.0,
+        "IsIncome": true,
+        "To": null,
+        "Recursive": true,
+        "CreatedBy": "EmpresaX",
+        "CreationDate": "2026-02-03",
+        "EffectiveDate": "2026-02-03"
+    }
+]
