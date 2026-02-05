@@ -131,6 +131,6 @@ class Operation:
         return ", ".join(parts)
 
     def to_dict(self): 
-        return  {"ID":self.ID, "Concept": self.Concept, "Value": self.Value, 
-                "IsIncome":self.IsIncome, "To":self.To, "Recursive":self.Recursive, "CreatedBy": self.CreatedBy, 
-                "CreationDate": self.CreationDate, "EffectiveDate":self.EffectiveDate}
+        return  {"ID":self.ID, "Concepto": self.Concept, "Importe": self.Value, 
+                "IsIncome":self.IsIncome, "Destinatario":self.To, "Recursivo":self.Recursive, "Usuario": self.CreatedBy, 
+                "Fecha_Creacion": self.CreationDate, "Fecha_Ejecucion":self.EffectiveDate}

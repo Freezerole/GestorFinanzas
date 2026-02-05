@@ -9,7 +9,7 @@ class Logs:
         self.data = []
         self.temp_log = None
 
-    def add_log(self, operation: Operation):
+    def add_log(self, operation: Operation):  #D
         datalog = {
             "ID": operation.ID,
             "Concepto": operation.Concept,
@@ -24,7 +24,7 @@ class Logs:
         }
         self.data.append(datalog)
 
-    def get_log(self, OperationID: int, logdate=None):
+    def get_log(self, OperationID: int, logdate=None): #D
         if logdate is None:
             for log in self.data:
                 if log["ID"] == OperationID:
@@ -52,7 +52,7 @@ class Logs:
         if confirmation == 0:
             for _, entry in self.temp_log.iterrows():
                 if entry["Fecha_Creacion"] > today:
-                    delete_log = self.get_log(entry["ID"], entry["Fecha_Creacion"])
+                    delete_log = self.get_log(entry["ID"])
                     if delete_log:
                         self.remove_normal_log(delete_log)
                     else:

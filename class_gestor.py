@@ -18,6 +18,7 @@ class IDGen:
        #Es necesario guardar datos sobre las operaciones, el ultimo ID usado y a poder ser una base de usuario-contraseña. Ordenar df por fecha e ID 
 #TODO:
 """
+        Mejorar (buscar un mejor sistema) para gestionar los recursivos usando un ID unico/ operacion + algo sencillo para agrupar las misma familia de operaciones recursivas
         Crear una funcion que genere por inputs las operaciones DONE
         Recursiva y normal (Ganancias y Perdidas) DONE
     Guardar datos del usuario (Nombre, Dinero, Nº Operaciones (Entre x e y Fechas) )

@@ -1,13 +1,24 @@
 [
     {
+        "ID": 1,
+        "Concepto": "Pago Luz",
+        "Importe": 100.0,
+        "IsIncome": false,
+        "Destinatario": "Endesa",
+        "Recursivo": false,
+        "Usuario": "Usuario1",
+        "Fecha_Creacion": "2026-02-05",
+        "Fecha_Ejecucion": "2026-02-05"
+    },
+    {
         "ID": 2,
-        "Concept": "Sueldo",
-        "Value": 1500.0,
+        "Concepto": "Sueldo",
+        "Importe": 1500.0,
         "IsIncome": true,
-        "To": null,
-        "Recursive": true,
-        "CreatedBy": "EmpresaX",
-        "CreationDate": "2026-02-03",
-        "EffectiveDate": "2026-02-03"
+        "Destinatario": null,
+        "Recursivo": true,
+        "Usuario": "EmpresaX",
+        "Fecha_Creacion": "2026-02-05",
+        "Fecha_Ejecucion": "2026-02-05"
     }
 ]
