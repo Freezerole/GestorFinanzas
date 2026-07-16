@@ -1,0 +1,19 @@
+{
+    "global": {
+        "last_id": 1
+    },
+    "operations": [
+        {
+            "ID": 1,
+            "Concept": "Ingreso Inicial",
+            "Value": 5894.76,
+            "IsIncome": true,
+            "Recursive": false,
+            "To": "Manuel Omil Barreiro",
+            "CreatedBy": null,
+            "CreationDate": "2026-07-15",
+            "EffectiveDate": "2026-07-15"
+        }
+    ],
+    "users": []
+}

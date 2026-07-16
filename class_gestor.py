@@ -1,28 +1,17 @@
 from class_operation import Operation
-from class_Logs import Logs
+from class_storage import Storage
 import datetime
 from dateutil.relativedelta import relativedelta  
 import pandas as pd
-from class_storage import Storage
 
-#Clase generadora de ID´s 
-#TODO Quitar esta clase y usar la funcion del storage
-class IDGen:
-    def __init__(self, storage):
-        self.storage = storage
-        self.n = self.storage.data["global"]["last_id"]
-
-    def generarID(self):
-        self.n += 1
-        self.storage.data["global"]["last_id"] = self.n
-        self.storage.save()
-        return self.n
-
+# NOTA: IDGen fue eliminada. La generación de IDs ahora la gestiona
+# Storage.get_next_id(), que persiste "global.last_id" en el JSON.
 
 #TODO: #A partir de la base de datos generar um df completo con el que poder exportar datos csv y trabajar.  MOdo de persistencia csv
        #Es necesario guardar datos sobre las operaciones, el ultimo ID usado y a poder ser una base de usuario-contraseña. Ordenar df por fecha e ID 
 #TODO:
 """
+        Mejorar (buscar un mejor sistema) para gestionar los recursivos usando un ID unico/ operacion + algo sencillo para agrupar las misma familia de operaciones recursivas
         Crear una funcion que genere por inputs las operaciones DONE
         Recursiva y normal (Ganancias y Perdidas) DONE
     Guardar datos del usuario (Nombre, Dinero, Nº Operaciones (Entre x e y Fechas) )
@@ -38,18 +27,15 @@ class IDGen:
     Menu y arbol de decisiones --> Archivo main Bajo la funcion iniciar()
     Crear func para importar el dataset a R y realizar analisis  #Primer objetivo sera hacer en R un grafico simple de los datos exportados de aqui
     Ordenar la tabla por fecha y por ID
-    Relacionar usuarios + contraseñas con operaciones
 """
 
 class Gestor:
     def __init__(self):
         #iniciadores:
         self.storage = Storage()
-        self.logs = Logs(self.storage)
-        self.generador = IDGen(self.storage)
 
         #atributos:
-        self.user_data = self.storage.data["users"]
+        self.user_data = []
         self.real_balance = 0.0 #float
         self.virtual_balance = 0.0 #float
         self.total_op = 0 # int
@@ -57,14 +43,14 @@ class Gestor:
 
     def create_id(self, recursive:bool, Concept:str, Value:float):
         if recursive:
-            self.logs.reset_temp_log()
-            self.logs.filter(Recursivo = recursive, Concepto = Concept, Importe = Value)
-            if self.logs.temp_log is None or self.logs.temp_log.empty: #caso de que sea el primer elemento recursivo de una operacion
-                 return self.generador.generarID()
+            self.storage.reset_temp_log()
+            self.storage.filter(Recursivo = recursive, Concepto = Concept, Importe = Value)
+            if self.storage.temp_log is None or self.storage.temp_log.empty: #caso de que sea el primer elemento recursivo de una operacion
+                 return self.storage.get_next_id()
             else:
-                return self.logs.temp_log.iloc[0]["ID"]
+                return int(self.storage.temp_log.iloc[0]["ID"])
         else: 
-            return self.generador.generarID()
+            return self.storage.get_next_id()
 
 
     def get_operation_info(self):
@@ -239,7 +225,7 @@ class Gestor:
         if end_date is None:
             while i < 60:
                 op = self.create_operation_from_data(data, effective_date=current_date)
-                self.logs.add_log(op)
+                self.storage.add_log(op)
                 current_date += datetime.timedelta(days=interval_days)
                 i += 1
 
@@ -248,7 +234,7 @@ class Gestor:
         else:
             while current_date <= end_date:
                 op = self.create_operation_from_data(data, effective_date=current_date)
-                self.logs.add_log(op)
+                self.storage.add_log(op)
                 current_date += datetime.timedelta(days=interval_days)
                 i += 1
             print(f"Se han creado {i} operaciones recursivas.")
@@ -266,27 +252,87 @@ class Gestor:
             print("Operaciones recursivas creadas con éxito.")
         else:
             op = self.create_operation_from_data(data)
-            self.logs.add_log(op)
+            self.storage.add_log(op)
             print("Operación creada con éxito.")
 
 
-    def find_true_balance(self, date = datetime.date.today()): #esta fecha viene dada en teoria por una entrada de log, para ver el balance al momento de hacer un pedido # si se borran entradas anteriores, como mantener eso
-        df = pd.DataFrame(self.logs.data) #dataframe
-        df_filter = df[df["Fecha_Ejecucion"] <= pd.Timestamp(date)]
+    def find_true_balance(self, date = None): #esta fecha viene dada en teoria por una entrada de log, para ver el balance al momento de hacer un pedido # si se borran entradas anteriores, como mantener eso
+        if date is None:
+            date = datetime.date.today()  # se evalúa en cada llamada, no una sola vez al definir la función
+
+        operations = self.storage.data["operations"]
+
+        if not operations:
+            return [0, 0.0]
+
+        df = pd.DataFrame(operations) #dataframe
+        # El signo del importe determina ingreso/gasto; "Value" se guarda siempre en positivo
+        signed_value = df["Value"].where(df["IsIncome"], -df["Value"])
+        df_filter = signed_value[pd.to_datetime(df["EffectiveDate"]) <= pd.Timestamp(date)]
 
         if df_filter.empty:
             total_op = 0
             real_balance = 0.0
         else:
             total_op = len(df_filter)
-            real_balance = df_filter["Importe"].sum()
+            real_balance = df_filter.sum()
 
         return [total_op, real_balance]
+
+    def get_movement_breakdown(self, end_date, months_back=2):
+        """
+        Devuelve el desglose de movimientos entre (end_date - months_back meses) y end_date,
+        junto con el balance de partida, el balance tras cada movimiento, y el balance final.
+        """
+        start_date = end_date - relativedelta(months=months_back)
+
+        # Balance acumulado justo antes de que empiece la ventana (reutiliza find_true_balance)
+        _, starting_balance = self.find_true_balance(date=start_date)
+
+        operations = self.storage.data["operations"]
+        if not operations:
+            return {
+                "start_date": start_date,
+                "end_date": end_date,
+                "starting_balance": starting_balance,
+                "movements": [],
+                "final_balance": starting_balance,
+            }
+
+        df = pd.DataFrame(operations)
+        df["EffectiveDateParsed"] = pd.to_datetime(df["EffectiveDate"]).dt.date
+        signed_value = df["Value"].where(df["IsIncome"], -df["Value"])
+        df = df.assign(SignedValue=signed_value)
+
+        # Solo movimientos DENTRO de la ventana (evita contar dos veces lo que ya
+        # está incluido en starting_balance)
+        ventana = df[(df["EffectiveDateParsed"] > start_date) & (df["EffectiveDateParsed"] <= end_date)]
+        ventana = ventana.sort_values("EffectiveDateParsed")
+
+        movimientos = []
+        balance_acumulado = starting_balance
+        for _, row in ventana.iterrows():
+            balance_acumulado += row["SignedValue"]
+            movimientos.append({
+                "ID": row["ID"],
+                "Concept": row["Concept"],
+                "EffectiveDate": row["EffectiveDateParsed"],
+                "SignedValue": row["SignedValue"],
+                "BalanceAfter": balance_acumulado,
+            })
+
+        return {
+            "start_date": start_date,
+            "end_date": end_date,
+            "starting_balance": starting_balance,
+            "movements": movimientos,
+            "final_balance": balance_acumulado,
+        }
         
  
     def actualizar_balance(self):
         self.total_op, self.real_balance = self.find_true_balance()
-        self.delta_balance = self.find_virtual_balance(manual= False) #Actualiza de forma automatica el virtual a un mes de plazo sin pedir imputs. Añade una cuenta de el balance estimado a final de mes
+        self.delta_balance, _ = self.find_virtual_balance(manual= False) #Actualiza de forma automatica el virtual a un mes de plazo sin pedir imputs. Añade una cuenta de el balance estimado a final de mes
 
 
 
@@ -333,4 +379,4 @@ class Gestor:
         else: 
             self.virtual_balance = virtual_balance #actualizar balance
 
-        return delta_balance
+        return delta_balance, end_date
