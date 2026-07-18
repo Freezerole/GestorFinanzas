@@ -1,29 +1,51 @@
 {
     "global": {
-        "last_id": 3
+        "last_id": 5
     },
     "operations": [
         {
-            "ID": 1,
-            "Concept": "Ingreso Inicial",
-            "Value": 5894.76,
-            "IsIncome": true,
-            "Recursive": false,
-            "To": "Manuel Omil Barreiro",
-            "CreatedBy": null,
-            "CreationDate": "2026-07-15",
-            "EffectiveDate": "2026-07-15"
-        },
-        {
-            "ID": 3,
-            "Concept": "Prueba API",
-            "Value": 42.0,
+            "ID": 5,
+            "Concept": "Espinacas",
+            "Value": 50.0,
             "IsIncome": false,
-            "Recursive": false,
-            "To": null,
-            "CreatedBy": null,
+            "Recursive": true,
+            "To": "Mortadelo",
+            "CreatedBy": "Popeye",
             "CreationDate": "2026-07-18",
             "EffectiveDate": "2026-07-18"
+        },
+        {
+            "ID": 5,
+            "Concept": "Espinacas",
+            "Value": 50.0,
+            "IsIncome": false,
+            "Recursive": true,
+            "To": "Mortadelo",
+            "CreatedBy": "Popeye",
+            "CreationDate": "2026-08-02",
+            "EffectiveDate": "2026-08-02"
+        },
+        {
+            "ID": 5,
+            "Concept": "Espinacas",
+            "Value": 50.0,
+            "IsIncome": false,
+            "Recursive": true,
+            "To": "Mortadelo",
+            "CreatedBy": "Popeye",
+            "CreationDate": "2026-08-17",
+            "EffectiveDate": "2026-08-17"
+        },
+        {
+            "ID": 5,
+            "Concept": "Espinacas",
+            "Value": 50.0,
+            "IsIncome": false,
+            "Recursive": true,
+            "To": "Mortadelo",
+            "CreatedBy": "Popeye",
+            "CreationDate": "2026-09-01",
+            "EffectiveDate": "2026-09-01"
         }
     ],
     "users": []
