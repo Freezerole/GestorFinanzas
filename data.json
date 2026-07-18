@@ -1,63 +1,9 @@
 {
     "global": {
-        "last_id": 8
+        "last_id": 0
     },
     "operations": [
-        {
-            "ID": 5,
-            "Concept": "Espinacas",
-            "Value": 50.0,
-            "IsIncome": false,
-            "Recursive": true,
-            "To": "Mortadelo",
-            "CreatedBy": "Popeye",
-            "CreationDate": "2026-07-18",
-            "EffectiveDate": "2026-07-18"
-        },
-        {
-            "ID": 5,
-            "Concept": "Espinacas",
-            "Value": 50.0,
-            "IsIncome": false,
-            "Recursive": true,
-            "To": "Mortadelo",
-            "CreatedBy": "Popeye",
-            "CreationDate": "2026-08-02",
-            "EffectiveDate": "2026-08-02"
-        },
-        {
-            "ID": 5,
-            "Concept": "Espinacas",
-            "Value": 50.0,
-            "IsIncome": false,
-            "Recursive": true,
-            "To": "Mortadelo",
-            "CreatedBy": "Popeye",
-            "CreationDate": "2026-08-17",
-            "EffectiveDate": "2026-08-17"
-        },
-        {
-            "ID": 5,
-            "Concept": "Espinacas",
-            "Value": 50.0,
-            "IsIncome": false,
-            "Recursive": true,
-            "To": "Mortadelo",
-            "CreatedBy": "Popeye",
-            "CreationDate": "2026-09-01",
-            "EffectiveDate": "2026-09-01"
-        },
-        {
-            "ID": 6,
-            "Concept": "Ingreso Inicial",
-            "Value": 200.0,
-            "IsIncome": true,
-            "Recursive": false,
-            "To": "Manuel Omil",
-            "CreatedBy": "Manuel Omil",
-            "CreationDate": "2026-07-18",
-            "EffectiveDate": "2026-07-18"
-        }
+
     ],
     "users": []
 }
