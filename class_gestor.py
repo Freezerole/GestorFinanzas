@@ -184,7 +184,6 @@ class Gestor:
             except ValueError:
                 print("Formato inválido. Usa YYYY-MM-DD o 'j' para omitir.")
 
-
     def create_operation_from_data(self, data, effective_date=None):
         return Operation(
             ID=data["ID"],
@@ -198,9 +197,27 @@ class Gestor:
             EffectiveDate=effective_date or data.get("EffectiveDate")
         )
 
-    def add_recursive_op(self, data):
+    def create_operation(self, data: dict) -> dict:
+        """
+        Versión sin input(), pensada para la API. 'data' debe traer:
+        Concept, Value, IsIncome, Recursive, To, CreatedBy, CreationDate,
+        EffectiveDate — y si Recursive=True, también interval_days y
+        opcionalmente end_date.
+        """
+        data = dict(data)  # copia defensiva, no mutamos el dict original
+        data["ID"] = self.create_id(data["Recursive"], data["Concept"], data["Value"])
 
-        # Intervalo de repetición
+        if data["Recursive"]:
+            interval_days = data.pop("interval_days")
+            end_date = data.pop("end_date", None)
+            count = self.generate_recursive_operations(data, interval_days, end_date)
+            return {"recursive": True, "created": count}
+        else:
+            op = self.create_operation_from_data(data)
+            self.storage.add_log(op)
+            return {"recursive": False, "created": 1, "ID": op.ID}
+
+    def add_recursive_op(self, data):
         while True:
             try:
                 interval_days = int(input("Cada cuántos días se repite la transacción: "))
@@ -211,13 +228,25 @@ class Gestor:
                 print("Introduce un número entero positivo.")
 
         while True:
-                start_date = data.get("EffectiveDate") or datetime.date.today()
-                end_date =self.get_date("Fecha de finalización (YYYY-MM-DD o 'j' para indefinida): ")
+            end_date = self.get_date("Fecha de finalización (YYYY-MM-DD o 'j' para indefinida): ")
+            start_date = data.get("EffectiveDate") or datetime.date.today()
+            if end_date and start_date > end_date:
+                print("La fecha de inicio es posterior a la fecha de finalización.")
+                continue
+            break
 
-                if end_date and start_date > end_date:
-                    print("La fecha de inicio es posterior a la fecha de finalización.")
-                    continue
-                break
+        count = self.generate_recursive_operations(data, interval_days, end_date)
+        if end_date is None:
+            print(f"Se han creado {count} operaciones. Límite máximo alcanzado.")
+        else:
+            print(f"Se han creado {count} operaciones recursivas.")
+
+    def generate_recursive_operations(self, data: dict, interval_days: int, end_date=None):
+        """Versión sin input(). Crea la serie recursiva y devuelve cuántas se crearon."""
+        start_date = data.get("EffectiveDate") or datetime.date.today()
+
+        if end_date and start_date > end_date:
+            raise ValueError("La fecha de inicio es posterior a la fecha de finalización.")
 
         i = 0
         current_date = start_date
@@ -228,18 +257,14 @@ class Gestor:
                 self.storage.add_log(op)
                 current_date += datetime.timedelta(days=interval_days)
                 i += 1
-
-            print(f"Se han creado {i} operaciones. Límite máximo alcanzado.")
-
         else:
             while current_date <= end_date:
                 op = self.create_operation_from_data(data, effective_date=current_date)
                 self.storage.add_log(op)
                 current_date += datetime.timedelta(days=interval_days)
                 i += 1
-            print(f"Se han creado {i} operaciones recursivas.")
 
-
+        return i
 
     def add_operation(self):
         data = self.get_operation_info()
@@ -254,7 +279,6 @@ class Gestor:
             op = self.create_operation_from_data(data)
             self.storage.add_log(op)
             print("Operación creada con éxito.")
-
 
     def find_true_balance(self, date = None): #esta fecha viene dada en teoria por una entrada de log, para ver el balance al momento de hacer un pedido # si se borran entradas anteriores, como mantener eso
         if date is None:
@@ -329,12 +353,9 @@ class Gestor:
             "final_balance": balance_acumulado,
         }
         
- 
     def actualizar_balance(self):
         self.total_op, self.real_balance = self.find_true_balance()
         self.delta_balance, _ = self.find_virtual_balance(manual= False) #Actualiza de forma automatica el virtual a un mes de plazo sin pedir imputs. Añade una cuenta de el balance estimado a final de mes
-
-
 
     def get_deltatime(self, delta = None):
         today = datetime.date.today()
@@ -358,10 +379,8 @@ class Gestor:
         end_date = today + relativedelta(months=delta)
         return end_date
 
-    
-
-
     def find_virtual_balance(self, manual = True): #fecha en la que dejas de estimar (para evitar problemas con recursivos) sea de un mes respecto a la fecha actual 
+        
         if manual:
             end_date = self.get_deltatime()
         else:
@@ -380,3 +399,17 @@ class Gestor:
             self.virtual_balance = virtual_balance #actualizar balance
 
         return delta_balance, end_date
+    
+    def project_balance(self, months: int) -> dict:
+        """Versión sin input()/print() de find_virtual_balance(manual=True)."""
+        total_op_today, real_balance_today = self.find_true_balance()
+        end_date = self.get_deltatime(delta=months)
+        virtual_op, virtual_balance = self.find_true_balance(date=end_date)
+
+        return {
+            "end_date": end_date,
+            "current_balance": real_balance_today,
+            "projected_balance": virtual_balance,
+            "delta": virtual_balance - real_balance_today,
+            "new_operations": virtual_op - total_op_today,
+        }

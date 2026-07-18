@@ -1,6 +1,6 @@
 {
     "global": {
-        "last_id": 2
+        "last_id": 3
     },
     "operations": [
         {
@@ -13,6 +13,17 @@
             "CreatedBy": null,
             "CreationDate": "2026-07-15",
             "EffectiveDate": "2026-07-15"
+        },
+        {
+            "ID": 3,
+            "Concept": "Prueba API",
+            "Value": 42.0,
+            "IsIncome": false,
+            "Recursive": false,
+            "To": null,
+            "CreatedBy": null,
+            "CreationDate": "2026-07-18",
+            "EffectiveDate": "2026-07-18"
         }
     ],
     "users": []
