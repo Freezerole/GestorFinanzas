@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finanzas — Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css">
+<style>
+  :root {
+    --bg-page: #0B0E14;
+    --bg-surface: #12161F;
+    --bg-elevated: #1A1F2B;
+    --bg-elevated-hover: #202638;
+    --border: #232838;
+    --border-strong: #2E3448;
+    --text-primary: #E7E4DD;
+    --text-secondary: #8B92A3;
+    --text-muted: #565D70;
+    --income: #7FBFA0;
+    --income-bg: rgba(127, 191, 160, 0.1);
+    --expense: #C97B63;
+    --expense-bg: rgba(201, 123, 99, 0.1);
+    --accent: #7FBFA0;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 232px;
+    flex-shrink: 0;
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 8px;
+  }
+
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: linear-gradient(155deg, var(--income) 0%, #4F8F73 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0B1410;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .brand-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+  }
+
+  .nav-group { display: flex; flex-direction: column; gap: 2px; }
+
+  .nav-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    padding: 0 12px;
+    margin-bottom: 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+
+  .nav-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+  .nav-item.active {
+    background: var(--income-bg);
+    color: var(--income);
+  }
+
+  .nav-item i { font-size: 17px; }
+
+  .nav-item .soon {
+    margin-left: auto;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+  }
+
+  .sidebar-footer p { font-size: 12px; color: var(--text-secondary); }
+  .sidebar-footer strong { color: var(--text-primary); font-weight: 500; }
+
+  /* ---------- Main ---------- */
+  .main {
+    flex: 1;
+    padding: 28px 36px 48px;
+    max-width: 1180px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .page-header h1 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .page-header .date {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ---------- Balance cards ---------- */
+  .balance-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+  }
+
+  .card-hero {
+    background: linear-gradient(150deg, #141B26 0%, #10151F 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-hero::after {
+    content: "";
+    position: absolute;
+    top: -40%;
+    right: -20%;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(127,191,160,0.10) 0%, transparent 70%);
+  }
+
+  .card-label {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-label i { font-size: 15px; }
+
+  .card-value {
+    font-family: var(--font-mono);
+    font-size: 32px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  .card-value.positive { color: var(--income); }
+  .card-value.negative { color: var(--expense); }
+
+  .card-sub {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .card-sub.up { color: var(--income); }
+  .card-sub.down { color: var(--expense); }
+
+  .card-value-md {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .toolbar h2 {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .toolbar-actions { display: flex; gap: 8px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+
+  .btn:hover { background: var(--bg-elevated-hover); border-color: #3A4159; }
+
+  .btn-primary {
+    background: var(--income);
+    border-color: var(--income);
+    color: #0B1410;
+    font-weight: 600;
+  }
+
+  .btn-primary:hover { background: #91CBAF; border-color: #91CBAF; }
+
+  .btn i { font-size: 15px; }
+
+  /* ---------- Filter chips ---------- */
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .chip {
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .chip:hover { border-color: var(--border-strong); color: var(--text-primary); }
+
+  .chip.active {
+    background: var(--income-bg);
+    border-color: var(--income);
+    color: var(--income);
+  }
+
+  /* ---------- Table ---------- */
+  .table-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead th {
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  thead th.num { text-align: right; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    transition: background 0.12s ease;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg-elevated); }
+
+  tbody tr::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+  }
+
+  tbody tr.income::before { background: var(--income); }
+  tbody tr.expense::before { background: var(--expense); }
+
+  td { padding: 13px 20px; font-size: 13.5px; }
+
+  td.concept { font-weight: 500; }
+
+  td.meta { color: var(--text-muted); font-size: 12.5px; }
+
+  td.date { font-family: var(--font-mono); color: var(--text-secondary); font-size: 12.5px; }
+
+  td.amount {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  td.amount.income { color: var(--income); }
+  td.amount.expense { color: var(--expense); }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .row-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+
+  .icon-btn:hover { background: var(--bg-elevated-hover); color: var(--text-primary); }
+  .icon-btn.danger:hover { color: var(--expense); }
+  .icon-btn i { font-size: 15px; }
+
+  /* ---------- Chart placeholder zone ---------- */
+  .chart-zone {
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    min-height: 200px;
+  }
+
+  .chart-zone i {
+    font-size: 28px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .chart-zone h3 {
+    font-family: var(--font-display);
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .chart-zone p {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    max-width: 360px;
+  }
+
+  .chart-zone-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 14px;
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">₲</div>
+    <span class="brand-name">Gestor</span>
+  </div>
+
+  <nav class="nav-group">
+    <span class="nav-label">Panel</span>
+    <a class="nav-item active"><i class="ti ti-layout-dashboard"></i>Resumen</a>
+    <a class="nav-item"><i class="ti ti-list"></i>Operaciones</a>
+    <a class="nav-item"><i class="ti ti-calendar-time"></i>Proyección</a>
+  </nav>
+
+  <nav class="nav-group">
+    <span class="nav-label">Análisis</span>
+    <a class="nav-item"><i class="ti ti-chart-bar"></i>Estadísticas<span class="soon">Próx.</span></a>
+    <a class="nav-item"><i class="ti ti-tags"></i>Categorías<span class="soon">Próx.</span></a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <h1>Resumen financiero</h1>
+    <span class="date">16 de julio de 2026</span>
+  </div>
+
+  <div class="balance-grid">
+    <div class="card card-hero">
+      <div class="card-label"><i class="ti ti-wallet"></i>Balance actual</div>
+      <div class="card-value positive" id="balance-actual-value">Cargando…</div>
+      <div class="card-sub" id="balance-actual-sub"></div>
+    </div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-arrow-up-right"></i>Ingresos (mes)</div>
+      <div class="card-value-md positive" id="ingresos-mes-value">Cargando…</div>
+      <div class="card-sub" id="ingresos-mes-sub"></div>
+    </div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-arrow-down-right"></i>Gastos (mes)</div>
+      <div class="card-value-md negative" id="gastos-mes-value">Cargando…</div>
+      <div class="card-sub" id="gastos-mes-sub"></div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <h2>Operaciones recientes</h2>
+    <div class="toolbar-actions">
+      <button class="btn"><i class="ti ti-filter"></i>Filtrar</button>
+      <button class="btn btn-primary"><i class="ti ti-plus"></i>Añadir operación</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <span class="chip active">Todas</span>
+    <span class="chip">Ingresos</span>
+    <span class="chip">Gastos</span>
+    <span class="chip">Recurrentes</span>
+  </div>
+
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Concepto</th>
+          <th>Fecha</th>
+          <th></th>
+          <th class="num">Importe</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="operations-tbody">
+      </tbody>
+    </table>
+  </div>
+
+  <div class="toolbar">
+    <h2>Análisis</h2>
+  </div>
+
+  <div class="chart-zone-grid">
+    <div class="chart-zone">
+      <i class="ti ti-chart-area-line"></i>
+      <h3>Evolución del balance</h3>
+      <p>Aquí irá la gráfica mensual de balance acumulado, una vez conectemos los datos reales.</p>
+    </div>
+    <div class="chart-zone">
+      <i class="ti ti-chart-pie"></i>
+      <h3>Gastos por categoría</h3>
+      <p>Espacio reservado para el desglose por categorías.</p>
+    </div>
+  </div>
+
+</main>
+<script>
+  const API_BASE = "http://127.0.0.1:8000/api";
+
+  // --- Llamadas a la API ---
+
+  async function fetchBalance() {
+    const res = await fetch(`${API_BASE}/balance`);
+    if (!res.ok) throw new Error("Error al obtener el balance");
+    return res.json();
+  }
+
+  async function fetchOperations() {
+    const res = await fetch(`${API_BASE}/operations`);
+    if (!res.ok) throw new Error("Error al obtener las operaciones");
+    return res.json();
+  }
+
+  // --- Utilidades de formato ---
+
+  function formatMoney(value) {
+    const sign = value < 0 ? "−" : "";
+    return sign + Math.abs(value).toLocaleString("es-ES", {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
+    }) + " €";
+  }
+
+  // --- Funciones que pintan datos en el DOM ---
+
+  function renderBalanceCard(balance) {
+    const valueEl = document.getElementById("balance-actual-value");
+    valueEl.textContent = formatMoney(balance.balance);
+    valueEl.classList.toggle("positive", balance.balance >= 0);
+    valueEl.classList.toggle("negative", balance.balance < 0);
+
+    const subEl = document.getElementById("balance-actual-sub");
+    const plural = balance.total_operations === 1 ? "" : "es";
+    subEl.innerHTML = `<i class="ti ti-list"></i> ${balance.total_operations} operación${plural} en total`;
+  }
+
+  function renderMonthlySummary(operations) {
+    const today = new Date();
+    const mes = today.getMonth();
+    const anio = today.getFullYear();
+
+    let income = 0, incomeCount = 0, expense = 0, expenseCount = 0;
+
+    operations.forEach(op => {
+      const fecha = new Date(op.EffectiveDate);
+      if (fecha.getMonth() === mes && fecha.getFullYear() === anio) {
+        if (op.IsIncome) { income += op.Value; incomeCount++; }
+        else { expense += op.Value; expenseCount++; }
+      }
+    });
+
+    document.getElementById("ingresos-mes-value").textContent = formatMoney(income);
+    document.getElementById("ingresos-mes-sub").textContent =
+      `${incomeCount} operación${incomeCount === 1 ? "" : "es"}`;
+
+    document.getElementById("gastos-mes-value").textContent = formatMoney(expense);
+    document.getElementById("gastos-mes-sub").textContent =
+      `${expenseCount} operación${expenseCount === 1 ? "" : "es"}`;
+  }
+
+  function renderOperationsTable(operations) {
+    const tbody = document.getElementById("operations-tbody");
+    tbody.innerHTML = "";
+
+    if (operations.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 24px;">No hay operaciones registradas</td></tr>`;
+      return;
+    }
+
+    const ordenadas = [...operations].sort(
+      (a, b) => new Date(b.EffectiveDate) - new Date(a.EffectiveDate)
+    );
+
+    ordenadas.forEach(op => {
+      const tr = document.createElement("tr");
+      tr.className = op.IsIncome ? "income" : "expense";
+
+      const tagLabel = op.Recursive ? "Recurrente" : (op.CreatedBy || op.To || "");
+      const tagIcon = op.Recursive ? "ti-repeat" : "ti-user";
+      const importe = op.Value.toLocaleString("es-ES", {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+      });
+
+      tr.innerHTML = `
+        <td class="concept">${op.Concept}</td>
+        <td class="date">${op.EffectiveDate}</td>
+        <td class="meta">${tagLabel ? `<span class="tag"><i class="ti ${tagIcon}"></i>${tagLabel}</span>` : ""}</td>
+        <td class="amount ${op.IsIncome ? "income" : "expense"}">${op.IsIncome ? "+" : "−"}${importe} €</td>
+        <td>
+          <div class="row-actions">
+            <button class="icon-btn"><i class="ti ti-edit"></i></button>
+            <button class="icon-btn danger" data-id="${op.ID}"><i class="ti ti-trash"></i></button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // --- Orquestador: carga todo al abrir la página ---
+
+  async function loadDashboard() {
+    try {
+      const [balance, operations] = await Promise.all([
+        fetchBalance(),
+        fetchOperations(),
+      ]);
+      renderBalanceCard(balance);
+      renderMonthlySummary(operations);
+      renderOperationsTable(operations);
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo conectar con la API. ¿Está arrancado el servidor (python3 -m uvicorn api:app --reload)?");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", loadDashboard);
+</script>
+</body>
+</html>

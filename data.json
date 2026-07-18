@@ -1,6 +1,6 @@
 {
     "global": {
-        "last_id": 5
+        "last_id": 8
     },
     "operations": [
         {
@@ -46,6 +46,17 @@
             "CreatedBy": "Popeye",
             "CreationDate": "2026-09-01",
             "EffectiveDate": "2026-09-01"
+        },
+        {
+            "ID": 6,
+            "Concept": "Ingreso Inicial",
+            "Value": 200.0,
+            "IsIncome": true,
+            "Recursive": false,
+            "To": "Manuel Omil",
+            "CreatedBy": "Manuel Omil",
+            "CreationDate": "2026-07-18",
+            "EffectiveDate": "2026-07-18"
         }
     ],
     "users": []
