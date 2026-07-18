@@ -208,6 +208,43 @@ class Storage:
         self.temp_log = df
         self.view_logs(show_columns=list(criteria.keys()), reset=False)
 
+
+    def  list_operations(self, sort_by="CreationDate"):
+        """Devuelve las operaciones ordenadas, sin imprimir nada. Para usar desde la API."""
+        return sorted(self.data["operations"], key=lambda op: op[sort_by])
+
+    def filter_operations(self, **criteria) -> list:
+        """Versión de filter() sin pandas y sin print — devuelve la lista filtrada."""
+        traduccion = {
+            "Concepto": "Concept", "Importe": "Value", "Destinatario": "To",
+            "Recursivo": "Recursive", "Usuario": "CreatedBy",
+            "Fecha_Creacion": "CreationDate", "Fecha_Ejecucion": "EffectiveDate",
+        }
+        criteria = {traduccion.get(k, k): v for k, v in criteria.items()}
+
+        results = self.data["operations"]
+        for key, value in criteria.items():
+            results = [op for op in results if op.get(key) == value]
+        return results
+
+    def remove_operation(self, op_id: int, creation_date=None) -> bool:
+        """Borra UNA entrada por ID (+ fecha opcional, útil si el ID se repite
+        en una serie recursiva). Sin confirmación por input() — la API decide
+        si confirma o no antes de llamar a esto. Devuelve True/False."""
+        log = self.get_log(op_id, creation_date)
+        if log is None:
+            return False
+        self.remove_normal_log(log)
+        return True
+
+    def remove_operation_family(self, op_id: int) -> int:
+        """Borra TODAS las entradas que compartan ese ID (toda una serie
+        recursiva). Devuelve cuántas se borraron."""
+        matches = [log for log in self.data["operations"] if log["ID"] == op_id]
+        for log in matches:
+            self.data["operations"].remove(log)
+        return len(matches)
+
     def reset_temp_log(self):
         self.temp_log = None
 
