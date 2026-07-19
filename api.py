@@ -1,8 +1,18 @@
 #para ejecutar el servidor: python3 -m uvicorn api:app --reload
 #ejecuta en http://127.0.0.1:8000/
 
+"""
+api.py — Backend FastAPI del Sistema de Gestión Financiera.
+
+Expone la lógica de Gestor/Storage como API HTTP y sirve el frontend
+(static/index.html) desde el mismo proceso, para que todo el proyecto
+arranque con un único comando:  python3 -m uvicorn api:app --reload
+"""
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from typing import Optional, List
 
 from class_gestor import Gestor
@@ -10,10 +20,6 @@ from parseo import OperationCreate, OperationOut, BalanceOut, ProjectionOut, Cre
 
 app = FastAPI(title="Gestor Financiero API")
 
-# Permite que prototipo.html (servido desde otro origen/puerto, o abierto
-# como archivo local) pueda hacer fetch() a esta API sin que el navegador
-# lo bloquee por CORS. En local esto es seguro; si algún día lo despliegas
-# fuera de tu máquina, esto habría que restringirlo.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,11 +33,12 @@ gestor.storage.load()
 
 
 def get_gestor() -> Gestor:
-    """Dependencia: cada endpoint la pide como parámetro y recibe
-    siempre la misma instancia (mismo patrón que 'iniciar()' en main.py,
-    pero viviendo mientras el servidor esté encendido, no solo mientras
-    dura una ejecución del script)."""
     return gestor
+
+
+# ============================================================
+#  ENDPOINTS DE LA API
+# ============================================================
 
 @app.get("/api/operations", response_model=List[OperationOut])
 def list_operations(
@@ -61,6 +68,7 @@ def list_operations(
         return gestor.storage.filter_operations(**criteria)
     return gestor.storage.list_operations()
 
+
 @app.post("/api/operations", response_model=CreateResult)
 def create_operation(payload: OperationCreate, gestor: Gestor = Depends(get_gestor)):
     data = payload.model_dump(exclude={"interval_days", "end_date"})
@@ -76,10 +84,12 @@ def create_operation(payload: OperationCreate, gestor: Gestor = Depends(get_gest
     gestor.storage.save()
     return result
 
+
 @app.get("/api/balance", response_model=BalanceOut)
 def get_balance(gestor: Gestor = Depends(get_gestor)):
     total_op, balance = gestor.find_true_balance()
     return BalanceOut(total_operations=total_op, balance=balance)
+
 
 @app.get("/api/balance/projection", response_model=ProjectionOut)
 def get_projection(months: int = 1, gestor: Gestor = Depends(get_gestor)):
@@ -87,11 +97,12 @@ def get_projection(months: int = 1, gestor: Gestor = Depends(get_gestor)):
         raise HTTPException(status_code=400, detail="'months' debe ser positivo")
     return gestor.project_balance(months)
 
+
 @app.delete("/api/operations/{op_id}")
 def delete_operation(
     op_id: int,
-    mode: str = "single",  # "single" = solo esta fecha, "family" = toda la serie
-    creation_date: Optional[str] = None,  # requerido si mode="single" y es recursiva
+    mode: str = "single",
+    creation_date: Optional[str] = None,
     gestor: Gestor = Depends(get_gestor),
 ):
     log = gestor.storage.get_log(op_id)
@@ -118,3 +129,17 @@ def delete_operation(
 
     gestor.storage.save()
     return {"deleted": count}
+
+
+# ============================================================
+#  FRONTEND — sirve static/index.html y sus recursos
+#  (va al final a propósito: mantiene las rutas de la API
+#  agrupadas y separadas de "servir archivos")
+# ============================================================
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/")
+def serve_frontend():
+    return FileResponse("static/index.html")

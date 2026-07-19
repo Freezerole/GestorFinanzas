@@ -393,22 +393,33 @@
     gap: 4px;
   }
 
-  .icon-btn {
+.icon-btn {
     width: 28px;
     height: 28px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 6px;
-    color: var(--text-muted);
+    color: var(--text-secondary);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
     cursor: pointer;
-    background: transparent;
-    border: none;
-    transition: background 0.12s ease, color 0.12s ease;
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
   }
 
   .icon-btn:hover { background: var(--bg-elevated-hover); color: var(--text-primary); }
-  .icon-btn.danger:hover { color: var(--expense); }
+
+  .icon-btn.danger {
+  color: var(--expense);
+  border-color: rgba(201, 123, 99, 0.3);
+  }
+
+  .icon-btn.danger:hover { 
+  background: var(--expense-bg); 
+  color: var(--expense); 
+  border-color: var(--expense);
+  }
+    
   .icon-btn i { font-size: 15px; }
 
   /* ---------- Chart placeholder zone ---------- */
@@ -445,11 +456,87 @@
     max-width: 360px;
   }
 
-  .chart-zone-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 14px;
-  }
+  .modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-overlay.open { display: flex; }
+
+.modal-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 420px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal-box h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.form-field { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+.form-field label { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; }
+.form-field input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+}
+.form-field input:focus { outline: none; border-color: var(--income); }
+
+.form-row { display: flex; gap: 10px; }
+.form-row .form-field { flex: 1; }
+
+.toggle-group { display: flex; gap: 8px; }
+.toggle-btn {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.toggle-btn.active-income { background: var(--income-bg); border-color: var(--income); color: var(--income); }
+.toggle-btn.active-expense { background: var(--expense-bg); border-color: var(--expense); color: var(--expense); }
+
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+.form-error {
+  background: var(--expense-bg);
+  color: var(--expense);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  margin-bottom: 14px;
+  display: none;
+}
+.form-error.show { display: block; }
+
+.hidden { display: none !important; }
+
+.chart-zone-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+}
+
 </style>
 </head>
 <body>
@@ -501,16 +588,16 @@
   <div class="toolbar">
     <h2>Operaciones recientes</h2>
     <div class="toolbar-actions">
-      <button class="btn"><i class="ti ti-filter"></i>Filtrar</button>
-      <button class="btn btn-primary"><i class="ti ti-plus"></i>Añadir operación</button>
+      <button class="btn" id="btn-filter"><i class="ti ti-filter"></i>Filtrar</button>
+      <button class="btn btn-primary" id="btn-add"><i class="ti ti-plus"></i>Añadir operación</button>
     </div>
   </div>
 
   <div class="filters">
-    <span class="chip active">Todas</span>
-    <span class="chip">Ingresos</span>
-    <span class="chip">Gastos</span>
-    <span class="chip">Recurrentes</span>
+    <span class="chip active" data-filter="all">Todas</span>
+    <span class="chip" data-filter="income">Ingresos</span>
+    <span class="chip" data-filter="expense">Gastos</span>
+    <span class="chip" data-filter="recursive">Recurrentes</span>
   </div>
 
   <div class="table-card">
@@ -547,10 +634,17 @@
   </div>
 
 </main>
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box" id="modal-box"></div>
+</div>
 <script>
-  const API_BASE = "http://127.0.0.1:8000/api";
+  const API_BASE = "/api";
 
-  // --- Llamadas a la API ---
+  // --- Estado de la sesión (vive mientras la página esté abierta) ---
+  let allOperations = [];
+  let currentFilter = "all";
+
+  // ===== Llamadas a la API =====
 
   async function fetchBalance() {
     const res = await fetch(`${API_BASE}/balance`);
@@ -564,7 +658,15 @@
     return res.json();
   }
 
-  // --- Utilidades de formato ---
+  function formatApiError(errBody) {
+    // Pydantic (422) manda 'detail' como lista; HTTPException (400) manda string
+    if (Array.isArray(errBody.detail)) {
+      return errBody.detail.map(d => d.msg).join(" | ");
+    }
+    return errBody.detail || "Ha ocurrido un error inesperado.";
+  }
+
+  // ===== Utilidades de formato =====
 
   function formatMoney(value) {
     const sign = value < 0 ? "−" : "";
@@ -573,7 +675,7 @@
     }) + " €";
   }
 
-  // --- Funciones que pintan datos en el DOM ---
+  // ===== Render =====
 
   function renderBalanceCard(balance) {
     const valueEl = document.getElementById("balance-actual-value");
@@ -641,7 +743,7 @@
         <td>
           <div class="row-actions">
             <button class="icon-btn"><i class="ti ti-edit"></i></button>
-            <button class="icon-btn danger" data-id="${op.ID}"><i class="ti ti-trash"></i></button>
+            <button class="icon-btn danger" data-id="${op.ID}" data-date="${op.CreationDate}"><i class="ti ti-trash"></i></button>
           </div>
         </td>
       `;
@@ -649,7 +751,226 @@
     });
   }
 
-  // --- Orquestador: carga todo al abrir la página ---
+  // ===== Filtro por chips (sobre los datos ya cargados, sin ir al backend) =====
+
+  function applyFilter(operations, filter) {
+    switch (filter) {
+      case "income": return operations.filter(op => op.IsIncome);
+      case "expense": return operations.filter(op => !op.IsIncome);
+      case "recursive": return operations.filter(op => op.Recursive);
+      default: return operations;
+    }
+  }
+
+  // ===== Modal genérico =====
+
+  function openModal(html) {
+    document.getElementById("modal-box").innerHTML = html;
+    document.getElementById("modal-overlay").classList.add("open");
+  }
+  function closeModal() {
+    document.getElementById("modal-overlay").classList.remove("open");
+    document.getElementById("modal-box").innerHTML = "";
+  }
+
+  // ===== Formulario: Añadir operación =====
+
+  function addOperationFormHTML() {
+    const today = new Date().toISOString().slice(0, 10);
+    return `
+      <h3>Añadir operación</h3>
+      <div class="form-error" id="form-error"></div>
+      <form id="op-form">
+        <div class="form-field">
+          <label>Concepto</label>
+          <input type="text" id="f-concept" required>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Importe (€)</label>
+            <input type="number" id="f-value" step="0.01" min="0.01" required>
+          </div>
+          <div class="form-field">
+            <label>Tipo</label>
+            <div class="toggle-group">
+              <div class="toggle-btn active-income" id="toggle-income">Ingreso</div>
+              <div class="toggle-btn" id="toggle-expense">Gasto</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Fecha de creación</label>
+            <input type="date" id="f-creation-date" value="${today}">
+          </div>
+          <div class="form-field">
+            <label>Fecha efectiva</label>
+            <input type="date" id="f-effective-date" value="${today}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>De / Remitente (opcional)</label>
+            <input type="text" id="f-to">
+          </div>
+          <div class="form-field">
+            <label>Para / Usuario (opcional)</label>
+            <input type="text" id="f-created-by">
+          </div>
+        </div>
+        <div class="form-field">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="f-recursive" style="width:auto;">
+            ¿Es una operación recurrente?
+          </label>
+        </div>
+        <div id="recursive-fields" class="hidden">
+          <div class="form-row">
+            <div class="form-field">
+              <label>Repetir cada (días)</label>
+              <input type="number" id="f-interval" min="1" step="1">
+            </div>
+            <div class="form-field">
+              <label>Fecha de fin (opcional)</label>
+              <input type="date" id="f-end-date">
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" id="btn-cancel-form">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    `;
+  }
+
+  function openAddOperationModal() {
+    openModal(addOperationFormHTML());
+
+    let isIncome = true;
+    document.getElementById("toggle-income").addEventListener("click", () => {
+      isIncome = true;
+      document.getElementById("toggle-income").classList.add("active-income");
+      document.getElementById("toggle-expense").classList.remove("active-expense");
+    });
+    document.getElementById("toggle-expense").addEventListener("click", () => {
+      isIncome = false;
+      document.getElementById("toggle-expense").classList.add("active-expense");
+      document.getElementById("toggle-income").classList.remove("active-income");
+    });
+
+    document.getElementById("f-recursive").addEventListener("change", (e) => {
+      const show = e.target.checked;
+      document.getElementById("recursive-fields").classList.toggle("hidden", !show);
+      document.getElementById("f-interval").required = show;
+    });
+
+    document.getElementById("btn-cancel-form").addEventListener("click", closeModal);
+
+    document.getElementById("op-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errorBox = document.getElementById("form-error");
+      errorBox.classList.remove("show");
+
+      const recursive = document.getElementById("f-recursive").checked;
+
+      const payload = {
+        Concept: document.getElementById("f-concept").value,
+        Value: parseFloat(document.getElementById("f-value").value),
+        IsIncome: isIncome,
+        Recursive: recursive,
+        To: document.getElementById("f-to").value || null,
+        CreatedBy: document.getElementById("f-created-by").value || null,
+        CreationDate: document.getElementById("f-creation-date").value || null,
+        EffectiveDate: document.getElementById("f-effective-date").value || null,
+      };
+
+      if (recursive) {
+        const interval = document.getElementById("f-interval").value;
+        payload.interval_days = interval ? parseInt(interval) : null;
+        const endDate = document.getElementById("f-end-date").value;
+        payload.end_date = endDate || null;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/operations`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const errBody = await res.json();
+          throw new Error(formatApiError(errBody));
+        }
+
+        closeModal();
+        await loadDashboard();
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.classList.add("show");
+      }
+    });
+  }
+
+  // ===== Borrado de operaciones =====
+
+  function findOperation(id, date) {
+    return allOperations.find(op => op.ID == id && op.CreationDate === date);
+  }
+
+  async function deleteOperation(id, { mode = "single", creationDate = null } = {}) {
+    let url = `${API_BASE}/operations/${id}?mode=${mode}`;
+    if (mode === "single" && creationDate) {
+      url += `&creation_date=${creationDate}`;
+    }
+    const res = await fetch(url, { method: "DELETE" });
+    if (!res.ok) {
+      const errBody = await res.json();
+      alert(formatApiError(errBody));
+      return;
+    }
+    await loadDashboard();
+  }
+
+  function openDeleteRecursiveModal(op) {
+    openModal(`
+      <h3>Eliminar operación recurrente</h3>
+      <p style="color: var(--text-secondary); font-size: 13.5px; margin-bottom: 18px;">
+        "${op.Concept}" forma parte de una serie recurrente. ¿Qué quieres eliminar?
+      </p>
+      <div class="modal-actions" style="justify-content: stretch; flex-direction: column; gap: 8px;">
+        <button class="btn" id="btn-del-single">Solo esta fecha (${op.EffectiveDate})</button>
+        <button class="btn" id="btn-del-family" style="border-color: var(--expense); color: var(--expense);">Toda la serie recurrente</button>
+        <button class="btn" id="btn-del-cancel">Cancelar</button>
+      </div>
+    `);
+
+    document.getElementById("btn-del-single").addEventListener("click", async () => {
+      closeModal();
+      await deleteOperation(op.ID, { mode: "single", creationDate: op.CreationDate });
+    });
+    document.getElementById("btn-del-family").addEventListener("click", async () => {
+      closeModal();
+      await deleteOperation(op.ID, { mode: "family" });
+    });
+    document.getElementById("btn-del-cancel").addEventListener("click", closeModal);
+  }
+
+  async function handleDeleteClick(id, date) {
+    const op = findOperation(id, date);
+    if (!op) return;
+
+    if (!op.Recursive) {
+      if (confirm(`¿Eliminar la operación "${op.Concept}" (${op.Value}€)?`)) {
+        await deleteOperation(op.ID, { mode: "single", creationDate: op.CreationDate });
+      }
+      return;
+    }
+    openDeleteRecursiveModal(op);
+  }
+
+  // ===== Orquestador principal =====
 
   async function loadDashboard() {
     try {
@@ -657,16 +978,47 @@
         fetchBalance(),
         fetchOperations(),
       ]);
+      allOperations = operations;
       renderBalanceCard(balance);
       renderMonthlySummary(operations);
-      renderOperationsTable(operations);
+      renderOperationsTable(applyFilter(allOperations, currentFilter));
     } catch (err) {
       console.error(err);
       alert("No se pudo conectar con la API. ¿Está arrancado el servidor (python3 -m uvicorn api:app --reload)?");
     }
   }
 
-  document.addEventListener("DOMContentLoaded", loadDashboard);
+  // ===== Listeners que solo se registran UNA vez =====
+
+  function setupEventListeners() {
+    document.getElementById("btn-add").addEventListener("click", openAddOperationModal);
+
+    document.getElementById("modal-overlay").addEventListener("click", (e) => {
+      if (e.target.id === "modal-overlay") closeModal();
+    });
+
+    document.querySelectorAll(".chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        currentFilter = chip.dataset.filter;
+        renderOperationsTable(applyFilter(allOperations, currentFilter));
+      });
+    });
+
+    // Delegación de eventos: un solo listener en el <tbody> en vez de
+    // uno por fila, porque las filas se recrean en cada loadDashboard()
+    document.getElementById("operations-tbody").addEventListener("click", (e) => {
+      const btn = e.target.closest(".icon-btn.danger");
+      if (!btn) return;
+      handleDeleteClick(btn.dataset.id, btn.dataset.date);
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setupEventListeners();
+    loadDashboard();
+  });
 </script>
 </body>
 </html>
