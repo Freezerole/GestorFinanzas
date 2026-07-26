@@ -114,6 +114,18 @@
     color: var(--income);
   }
 
+  .nav-item:focus-visible {
+    outline: 2px solid var(--income);
+    outline-offset: -2px;
+  }
+
+  .nav-item-disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  .nav-item-disabled:hover { background: none; color: var(--text-secondary); }
+
   .nav-item i { font-size: 17px; }
 
   .nav-item .soon {
@@ -537,6 +549,42 @@
   gap: 14px;
 }
 
+.view { display: none; }
+.view.active { display: block; }
+
+.view-placeholder {
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  min-height: 320px;
+}
+
+.view-placeholder i {
+  font-size: 30px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.view-placeholder h3 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.view-placeholder p {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  max-width: 400px;
+}
+
 </style>
 </head>
 <body>
@@ -549,23 +597,25 @@
 
   <nav class="nav-group">
     <span class="nav-label">Panel</span>
-    <a class="nav-item active"><i class="ti ti-layout-dashboard"></i>Resumen</a>
-    <a class="nav-item"><i class="ti ti-list"></i>Operaciones</a>
-    <a class="nav-item"><i class="ti ti-calendar-time"></i>Proyección</a>
+    <a class="nav-item active" data-view="resumen" role="button" tabindex="0"><i class="ti ti-layout-dashboard"></i>Resumen</a>
+    <a class="nav-item" data-view="operaciones" role="button" tabindex="0"><i class="ti ti-list"></i>Operaciones</a>
+    <a class="nav-item" data-view="proyeccion" role="button" tabindex="0"><i class="ti ti-calendar-time"></i>Proyección</a>
   </nav>
 
   <nav class="nav-group">
     <span class="nav-label">Análisis</span>
-    <a class="nav-item"><i class="ti ti-chart-bar"></i>Estadísticas<span class="soon">Próx.</span></a>
-    <a class="nav-item"><i class="ti ti-tags"></i>Categorías<span class="soon">Próx.</span></a>
+    <a class="nav-item nav-item-disabled"><i class="ti ti-chart-bar"></i>Estadísticas<span class="soon">Próx.</span></a>
+    <a class="nav-item nav-item-disabled"><i class="ti ti-tags"></i>Categorías<span class="soon">Próx.</span></a>
   </nav>
 </aside>
 
 <main class="main">
   <div class="page-header">
-    <h1>Resumen financiero</h1>
+    <h1 id="page-title">Resumen financiero</h1>
     <span class="date">16 de julio de 2026</span>
   </div>
+
+  <section class="view active" id="view-resumen">
 
   <div class="balance-grid">
     <div class="card card-hero">
@@ -632,6 +682,24 @@
       <p>Espacio reservado para el desglose por categorías.</p>
     </div>
   </div>
+
+  </section>
+
+  <section class="view" id="view-operaciones">
+    <div class="view-placeholder">
+      <i class="ti ti-list-details"></i>
+      <h3>Historial completo de operaciones</h3>
+      <p>Aquí verás todas las operaciones agrupadas por mes, con las pendientes a futuro en un desplegable aparte.</p>
+    </div>
+  </section>
+
+  <section class="view" id="view-proyeccion">
+    <div class="view-placeholder">
+      <i class="ti ti-calendar-time"></i>
+      <h3>Proyección de balance</h3>
+      <p>Aquí podrás simular tu balance a N meses vista y ver el desglose de movimientos proyectados.</p>
+    </div>
+  </section>
 
 </main>
 <div class="modal-overlay" id="modal-overlay">
@@ -760,6 +828,24 @@
       case "recursive": return operations.filter(op => op.Recursive);
       default: return operations;
     }
+  }
+
+  // ===== Navegación por pestañas (sidebar) =====
+
+  const VIEW_TITLES = {
+    resumen: "Resumen financiero",
+    operaciones: "Operaciones",
+    proyeccion: "Proyección de balance",
+  };
+
+  function switchView(view) {
+    document.querySelectorAll(".nav-item[data-view]").forEach(item => {
+      item.classList.toggle("active", item.dataset.view === view);
+    });
+    document.querySelectorAll(".view").forEach(section => {
+      section.classList.toggle("active", section.id === `view-${view}`);
+    });
+    document.getElementById("page-title").textContent = VIEW_TITLES[view] || "";
   }
 
   // ===== Modal genérico =====
@@ -991,6 +1077,16 @@
   // ===== Listeners que solo se registran UNA vez =====
 
   function setupEventListeners() {
+    document.querySelectorAll(".nav-item[data-view]").forEach(item => {
+      item.addEventListener("click", () => switchView(item.dataset.view));
+      item.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          switchView(item.dataset.view);
+        }
+      });
+    });
+
     document.getElementById("btn-add").addEventListener("click", openAddOperationModal);
 
     document.getElementById("modal-overlay").addEventListener("click", (e) => {
