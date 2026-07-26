@@ -585,6 +585,97 @@
   max-width: 400px;
 }
 
+/* ---------- Vista Operaciones: grupos por mes + desplegable de futuras ---------- */
+
+.month-group { margin-bottom: 20px; }
+
+.month-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.month-subheader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 18px 0 8px;
+}
+
+.month-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 1px 8px;
+  border-radius: 20px;
+  margin-left: auto;
+}
+
+.future-accordion {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 18px;
+  margin-top: 8px;
+}
+
+.future-accordion summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  list-style: none;
+}
+
+.future-accordion summary::-webkit-details-marker { display: none; }
+
+.future-accordion summary i.ti-calendar-due { color: var(--income); font-size: 17px; }
+
+.accordion-chevron {
+  font-size: 15px !important;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.future-accordion[open] .accordion-chevron { transform: rotate(90deg); }
+
+.future-body {
+  padding: 6px 0 20px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+}
+
+.limit-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--expense-bg);
+  color: var(--expense);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  margin: 16px 0 4px;
+}
+
+.limit-notice i { font-size: 16px; flex-shrink: 0; }
+
 </style>
 </head>
 <body>
@@ -686,10 +777,12 @@
   </section>
 
   <section class="view" id="view-operaciones">
-    <div class="view-placeholder">
-      <i class="ti ti-list-details"></i>
-      <h3>Historial completo de operaciones</h3>
-      <p>Aquí verás todas las operaciones agrupadas por mes, con las pendientes a futuro en un desplegable aparte.</p>
+    <div id="operaciones-content">
+      <div class="view-placeholder">
+        <i class="ti ti-list-details"></i>
+        <h3>Cargando operaciones…</h3>
+        <p>Un momento mientras traemos tu historial.</p>
+      </div>
     </div>
   </section>
 
@@ -697,7 +790,7 @@
     <div class="view-placeholder">
       <i class="ti ti-calendar-time"></i>
       <h3>Proyección de balance</h3>
-      <p>Aquí podrás simular tu balance a N meses vista y ver el desglose de movimientos proyectados.</p>
+      <p>Aquí podrás simular tu balance a N meses vista y ver el desglose de movimientos proyectados. Lo conectamos en el siguiente paso.</p>
     </div>
   </section>
 
@@ -780,6 +873,34 @@
       `${expenseCount} operación${expenseCount === 1 ? "" : "es"}`;
   }
 
+  // Fragmento de celdas de una operación, compartido entre la tabla del
+  // Resumen y los grupos por mes de la vista Operaciones — una sola
+  // plantilla evita que las dos vistas se desincronicen.
+  function operationRowInnerHTML(op) {
+    const tagLabel = op.Recursive ? "Recurrente" : (op.CreatedBy || op.To || "");
+    const tagIcon = op.Recursive ? "ti-repeat" : "ti-user";
+    const importe = op.Value.toLocaleString("es-ES", {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
+    });
+
+    return `
+      <td class="concept">${op.Concept}</td>
+      <td class="date">${op.EffectiveDate}</td>
+      <td class="meta">${tagLabel ? `<span class="tag"><i class="ti ${tagIcon}"></i>${tagLabel}</span>` : ""}</td>
+      <td class="amount ${op.IsIncome ? "income" : "expense"}">${op.IsIncome ? "+" : "−"}${importe} €</td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn"><i class="ti ti-edit"></i></button>
+          <button class="icon-btn danger" data-id="${op.ID}" data-date="${op.CreationDate}"><i class="ti ti-trash"></i></button>
+        </div>
+      </td>
+    `;
+  }
+
+  function operationRowHTML(op) {
+    return `<tr class="${op.IsIncome ? "income" : "expense"}">${operationRowInnerHTML(op)}</tr>`;
+  }
+
   function renderOperationsTable(operations) {
     const tbody = document.getElementById("operations-tbody");
     tbody.innerHTML = "";
@@ -796,27 +917,131 @@
     ordenadas.forEach(op => {
       const tr = document.createElement("tr");
       tr.className = op.IsIncome ? "income" : "expense";
-
-      const tagLabel = op.Recursive ? "Recurrente" : (op.CreatedBy || op.To || "");
-      const tagIcon = op.Recursive ? "ti-repeat" : "ti-user";
-      const importe = op.Value.toLocaleString("es-ES", {
-        minimumFractionDigits: 2, maximumFractionDigits: 2
-      });
-
-      tr.innerHTML = `
-        <td class="concept">${op.Concept}</td>
-        <td class="date">${op.EffectiveDate}</td>
-        <td class="meta">${tagLabel ? `<span class="tag"><i class="ti ${tagIcon}"></i>${tagLabel}</span>` : ""}</td>
-        <td class="amount ${op.IsIncome ? "income" : "expense"}">${op.IsIncome ? "+" : "−"}${importe} €</td>
-        <td>
-          <div class="row-actions">
-            <button class="icon-btn"><i class="ti ti-edit"></i></button>
-            <button class="icon-btn danger" data-id="${op.ID}" data-date="${op.CreationDate}"><i class="ti ti-trash"></i></button>
-          </div>
-        </td>
-      `;
+      tr.innerHTML = operationRowInnerHTML(op);
       tbody.appendChild(tr);
     });
+  }
+
+  // ===== Vista "Operaciones": agrupadas por mes + futuras en desplegable =====
+
+  function groupByMonth(operations) {
+    const groups = new Map(); // "YYYY-MM" -> { label, items }
+    operations.forEach(op => {
+      const d = new Date(op.EffectiveDate);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (!groups.has(key)) {
+        const label = d.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+        groups.set(key, { label: label.charAt(0).toUpperCase() + label.slice(1), items: [] });
+      }
+      groups.get(key).items.push(op);
+    });
+    return groups;
+  }
+
+  function monthTableHTML(group) {
+    return `
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr><th>Concepto</th><th>Fecha</th><th></th><th class="num">Importe</th><th></th></tr>
+          </thead>
+          <tbody>${group.items.map(operationRowHTML).join("")}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderOperacionesView(operations) {
+    const container = document.getElementById("operaciones-content");
+    if (!container) return;
+
+    if (operations.length === 0) {
+      container.innerHTML = `
+        <div class="view-placeholder">
+          <i class="ti ti-list-details"></i>
+          <h3>Todavía no hay operaciones</h3>
+          <p>Añade tu primera operación desde el Resumen para verla aquí.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const pasadas = operations.filter(op => new Date(op.EffectiveDate) <= today);
+    const futuras = operations.filter(op => new Date(op.EffectiveDate) > today);
+
+    // Historial: meses más recientes primero, y dentro de cada mes lo más
+    // reciente arriba — se lee como un extracto bancario.
+    const pastGroups = groupByMonth(pasadas);
+    const pastKeys = [...pastGroups.keys()].sort().reverse();
+    pastKeys.forEach(key => {
+      pastGroups.get(key).items.sort((a, b) => new Date(b.EffectiveDate) - new Date(a.EffectiveDate));
+    });
+
+    let html = pastKeys.length
+      ? pastKeys.map(key => {
+          const g = pastGroups.get(key);
+          return `
+            <div class="month-group">
+              <h3 class="month-header">${g.label}<span class="month-count">${g.items.length}</span></h3>
+              ${monthTableHTML(g)}
+            </div>
+          `;
+        }).join("")
+      : `<p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">Sin operaciones pasadas todavía.</p>`;
+
+    if (futuras.length > 0) {
+      // Futuras: orden ascendente, lo más próximo primero — es una proyección
+      // hacia delante, no un historial.
+      const futureGroups = groupByMonth(futuras);
+      const futureKeys = [...futureGroups.keys()].sort();
+      futureKeys.forEach(key => {
+        futureGroups.get(key).items.sort((a, b) => new Date(a.EffectiveDate) - new Date(b.EffectiveDate));
+      });
+
+      // Avisar si alguna serie recurrente sin fecha de fin llegó al tope de
+      // 60 repeticiones (generate_recursive_operations en class_gestor.py),
+      // para que no parezca que la recurrencia simplemente se detuvo sola.
+      const counts = {};
+      futuras.forEach(op => { counts[op.ID] = (counts[op.ID] || 0) + 1; });
+      const enElLimite = [...new Set(
+        futuras.filter(op => op.Recursive && counts[op.ID] >= 60).map(op => op.Concept)
+      )];
+
+      const futureBody = futureKeys.map(key => {
+        const g = futureGroups.get(key);
+        return `
+          <div class="month-group">
+            <h4 class="month-subheader">${g.label}</h4>
+            ${monthTableHTML(g)}
+          </div>
+        `;
+      }).join("");
+
+      html += `
+        <details class="future-accordion">
+          <summary>
+            <i class="ti ti-chevron-right accordion-chevron"></i>
+            <i class="ti ti-calendar-due"></i>
+            Operaciones pendientes a futuro
+            <span class="month-count">${futuras.length}</span>
+          </summary>
+          <div class="future-body">
+            ${enElLimite.length ? `
+              <div class="limit-notice">
+                <i class="ti ti-alert-triangle"></i>
+                Proyección limitada a 60 repeticiones para: ${enElLimite.join(", ")}. Si necesitas más, indica una fecha de fin al crear la recurrencia.
+              </div>
+            ` : ""}
+            ${futureBody}
+          </div>
+        </details>
+      `;
+    }
+
+    container.innerHTML = html;
   }
 
   // ===== Filtro por chips (sobre los datos ya cargados, sin ir al backend) =====
@@ -1068,6 +1293,7 @@
       renderBalanceCard(balance);
       renderMonthlySummary(operations);
       renderOperationsTable(applyFilter(allOperations, currentFilter));
+      renderOperacionesView(allOperations);
     } catch (err) {
       console.error(err);
       alert("No se pudo conectar con la API. ¿Está arrancado el servidor (python3 -m uvicorn api:app --reload)?");
@@ -1105,6 +1331,15 @@
     // Delegación de eventos: un solo listener en el <tbody> en vez de
     // uno por fila, porque las filas se recrean en cada loadDashboard()
     document.getElementById("operations-tbody").addEventListener("click", (e) => {
+      const btn = e.target.closest(".icon-btn.danger");
+      if (!btn) return;
+      handleDeleteClick(btn.dataset.id, btn.dataset.date);
+    });
+
+    // Misma idea para la vista Operaciones: el contenedor nunca se
+    // reemplaza, solo su innerHTML, así que el listener sobrevive a
+    // cada renderOperacionesView()
+    document.getElementById("operaciones-content").addEventListener("click", (e) => {
       const btn = e.target.closest(".icon-btn.danger");
       if (!btn) return;
       handleDeleteClick(btn.dataset.id, btn.dataset.date);
